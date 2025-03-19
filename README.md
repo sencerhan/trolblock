@@ -1,6 +1,6 @@
 # Trolblock Uzantısı
 
-Bu Chrome uzantısı, belirli kullanıcılardan gelen istenmeyen zırvaları engellemenize yardımcı olur.
+Bu Chrome uzantısı, belirli kullanıcılardan gelen istenmeyen zırvaları engellemenize yardımcı olur. Şimdilik ekşide işe yaramaktadır.
 
 ## Özellikler
 
