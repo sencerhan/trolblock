@@ -14,27 +14,21 @@ document.addEventListener('DOMContentLoaded', function() {
   saveButton.addEventListener('click', function() {
     // Textarea içeriğini ayrıştır
     const text = textarea.value.trim();
-    let blockedAuthors = [];
+    let blockedAuthors = text ? text.split(',').map(author => author.trim()).filter(author => author !== '') : [];
     
-    if (text) {
-      blockedAuthors = text.split(',')
-        .map(author => author.trim())
-        .filter(author => author !== '');
-    }
-    
-    // Depolamaya kaydet
+    // Depolamaya kaydet ve aktif sekmeye bildir
     chrome.runtime.sendMessage(
       { action: "updateBlockedAuthors", blockedAuthors: blockedAuthors },
       (response) => {
         if (response.success) {
           statusElement.textContent = "Başarıyla kaydedildi!";
           
-          // Aktif sekmeye engel listesini yenilemesi için bildir
+          // Aktif sekmeye yeni listeyi doğrudan gönder
           chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0]) {
               chrome.tabs.sendMessage(
                 tabs[0].id,
-                { action: "refreshBlockList" }
+                { action: "updateBlockedAuthors", blockedAuthors: blockedAuthors }
               );
             }
           });
