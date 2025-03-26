@@ -12,6 +12,11 @@
         <p>Engellemek istediğiniz kullanıcıları virgülle ayırarak girin:</p>
         <textarea id="blockedAuthors" rows="4" cols="30"></textarea>
         <button id="saveButton">Kaydet</button>
+        <div class="backup-controls" style="margin-top: 10px;">
+            <button id="exportButton">Listeyi Yedekle</button>
+            <button id="importButton">Liste Yükle</button>
+            <input type="file" id="importInput" style="display: none;" accept=".json">
+        </div>
         <p id="status"></p>
     </div>
     <script src="popup.js"></script>
