@@ -84,6 +84,8 @@ async function removeWithAnimation(element) {
   // 2 saniye bekle ve element'i sil
   await new Promise((resolve) => setTimeout(resolve, 1500));
   element.remove();
+  showNotification(1);
+  removedTotalCount = 0;
 }
 
 function removeBlockedComments() {
@@ -94,20 +96,16 @@ function removeBlockedComments() {
     if (blockedAuthors.includes(element.getAttribute("data-author"))) {
       const rect = element.getBoundingClientRect();
       const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
-      if (isVisible) { 
+      if (isVisible) {
         removeWithAnimation(element);
         removedTotalCount++;
         removedCount++;
       }
     }
   }
-  if (removedCount > 0) {
-    showNotification(removedTotalCount);
-    removedTotalCount = 0;
-  }
 }
 //add event listener scroll
-window.addEventListener('scroll', removeBlockedComments);
+window.addEventListener("scroll", removeBlockedComments);
 function addBlockButtons() {
   document.querySelectorAll(".favorite-links").forEach((favLink) => {
     // Eğer buton zaten eklenmişse tekrar ekleme
