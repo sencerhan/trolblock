@@ -84,8 +84,8 @@ async function removeWithAnimation(element) {
   // 2 saniye bekle ve element'i sil
   await new Promise((resolve) => setTimeout(resolve, 1500));
   element.remove();
-  showNotification(1);
-  removedTotalCount = 0;
+    showNotification(1);
+    removedTotalCount = 0;
 }
 
 function removeBlockedComments() {
@@ -96,7 +96,7 @@ function removeBlockedComments() {
     if (blockedAuthors.includes(element.getAttribute("data-author"))) {
       const rect = element.getBoundingClientRect();
       const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
-      if (isVisible) {
+      if (isVisible) { 
         removeWithAnimation(element);
         removedTotalCount++;
         removedCount++;
@@ -105,56 +105,59 @@ function removeBlockedComments() {
   }
 }
 //add event listener scroll
-window.addEventListener("scroll", removeBlockedComments);
+window.addEventListener('scroll', removeBlockedComments);
 function addBlockButtons() {
-  document.querySelectorAll(".favorite-links").forEach((favLink) => {
+document.querySelectorAll(".favorite-links").forEach((favLink) => {
+    // Sadece li içerisindeki favorite-links için işlem yap
+    if (!favLink.closest("li")) return;
+    
     // Eğer buton zaten eklenmişse tekrar ekleme
     if (favLink.nextElementSibling?.classList.contains("trolblock-button"))
-      return;
+        return;
 
     const blockButton = document.createElement("a");
     blockButton.className = "trolblock-button";
     blockButton.style.cssText =
-      "cursor:pointer;margin-left:5px;display:inline-flex;align-items:center; margin-top: 1px;";
+        "cursor:pointer;margin-left:5px;display:inline-flex;align-items:center; margin-top: 1px;";
     blockButton.innerHTML = `
-            <img src="${chrome.runtime.getURL(
-              "icons/icon16.png"
-            )}" style="width:16px;height:16px;margin-right:3px;">
-            <span style="color:#666;font-size:12px;">Zırrrva</span>
-        `;
+                    <img src="${chrome.runtime.getURL(
+                        "icons/icon16.png"
+                    )}" style="width:16px;height:16px;margin-right:3px;">
+                    <span style="color:#666;font-size:12px;" title="Zırrrva">Derdini S...</span>
+            `;
 
     blockButton.addEventListener("click", (e) => {
-      e.preventDefault();
-      const entry = favLink.closest("li[data-author]");
-      if (entry) {
-        const author = entry.getAttribute("data-author");
-        if (author) {
-          chrome.runtime.sendMessage(
-            { action: "getBlockedAuthors" },
-            (response) => {
-              const currentList = response.blockedAuthors || [];
-              if (!currentList.includes(author)) {
-                const newList = [...currentList, author];
+        e.preventDefault();
+        const entry = favLink.closest("li[data-author]");
+        if (entry) {
+            const author = entry.getAttribute("data-author");
+            if (author) {
                 chrome.runtime.sendMessage(
-                  {
-                    action: "updateBlockedAuthors",
-                    blockedAuthors: newList,
-                  },
-                  () => {
-                    blockedAuthors = newList;
-                    //trigger new mutation observer
-                    document.body.appendChild(document.createElement("div"));
-                  }
+                    { action: "getBlockedAuthors" },
+                    (response) => {
+                        const currentList = response.blockedAuthors || [];
+                        if (!currentList.includes(author)) {
+                            const newList = [...currentList, author];
+                            chrome.runtime.sendMessage(
+                                {
+                                    action: "updateBlockedAuthors",
+                                    blockedAuthors: newList,
+                                },
+                                () => {
+                                    blockedAuthors = newList;
+                                    //trigger new mutation observer
+                                    document.body.appendChild(document.createElement("div"));
+                                }
+                            );
+                        }
+                    }
                 );
-              }
             }
-          );
         }
-      }
     });
 
     favLink.insertAdjacentElement("afterend", blockButton);
-  });
+});
 }
 
 // Sayfa yüklendiğinde ve DOM değişikliklerinde butonları ekle
