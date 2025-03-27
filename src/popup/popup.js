@@ -81,4 +81,27 @@ document.addEventListener('DOMContentLoaded', function() {
           reader.readAsText(file);
       }
   });
+
+  // Ayarları yükle
+  chrome.storage.sync.get(['showNotifications', 'showAnimations'], (result) => {
+      document.getElementById('showNotifications').checked = result.showNotifications !== false;
+      document.getElementById('showAnimations').checked = result.showAnimations !== false;
+  });
+
+  // Ayarları kaydet
+  ['showNotifications', 'showAnimations'].forEach(id => {
+      document.getElementById(id).addEventListener('change', function(e) {
+          chrome.storage.sync.set({ [id]: e.target.checked }, () => {
+              // Aktif sekmeye ayarları bildir
+              chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+                  if (tabs[0]) {
+                      chrome.tabs.sendMessage(tabs[0].id, { 
+                          action: "updateSettings",
+                          settings: { [id]: e.target.checked }
+                      });
+                  }
+              });
+          });
+      });
+  });
 });

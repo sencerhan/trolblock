@@ -1,11 +1,12 @@
 // Uzantı yüklendiğinde varsayılan değerleri başlat
 chrome.runtime.onInstalled.addListener(() => {
-    // Önce mevcut listeyi kontrol et
-    chrome.storage.sync.get(['blockedAuthors'], (result) => {
-        if (!result.blockedAuthors) {
-            // Sadece liste boşsa yeni boş liste oluştur
-            chrome.storage.sync.set({ blockedAuthors: [] });
-        }
+    chrome.storage.sync.get(['blockedAuthors', 'showNotifications', 'showAnimations'], (result) => {
+        const defaults = {
+            blockedAuthors: result.blockedAuthors || [],
+            showNotifications: result.showNotifications !== false,
+            showAnimations: result.showAnimations !== false
+        };
+        chrome.storage.sync.set(defaults);
     });
 });
 
