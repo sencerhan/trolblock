@@ -6,8 +6,7 @@
   "permissions": [
     "activeTab",
     "storage",
-    "unlimitedStorage",
-    "storage.sync"
+    "unlimitedStorage"
   ],
   "background": {
     "service_worker": "src/background.js"
