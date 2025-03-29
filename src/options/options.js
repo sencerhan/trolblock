@@ -4,35 +4,57 @@ if (typeof browser === "undefined") {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    const statusElement = document.getElementById('status');
+    const showNotificationsCheckbox = document.getElementById('showNotifications');
+    const showAnimationsCheckbox = document.getElementById('showAnimations');
     const textarea = document.getElementById('blockedAuthors');
     const saveButton = document.getElementById('saveButton');
-    const statusElement = document.getElementById('status');
 
-    // Kaydedilmiş engellenen yazarları yükle
-    function loadBlockedAuthors() {
-        browser.storage.local.get('blockedAuthors').then((result) => {
-            if (result.blockedAuthors) {
-                textarea.value = result.blockedAuthors.join('\n');
+    // Ayarları yükle
+    function loadSettings() {
+        browser.storage.local.get(['showNotifications', 'showAnimations', 'blockedAuthors'], (result) => {
+            if (browser.runtime.lastError) {
+                console.error('Storage error:', browser.runtime.lastError);
+                return;
             }
+            showNotificationsCheckbox.checked = result.showNotifications !== false;
+            showAnimationsCheckbox.checked = result.showAnimations !== false;
+            textarea.value = (result.blockedAuthors || []).join('\n');
         });
     }
 
-    loadBlockedAuthors();
+    loadSettings();
 
-    // Buton tıklandığında engellenen yazarları kaydet
-    saveButton.addEventListener('click', function() {
-        const text = textarea.value.trim();
-        const blockedAuthors = text ? text.split('\n').map(author => author.trim()).filter(author => author !== '') : [];
-
-        browser.storage.local.set({ blockedAuthors }).then(() => {
-            statusElement.textContent = "Başarıyla kaydedildi!";
+    // Ayarları kaydet
+    function saveSettings() {
+        const settings = {
+            showNotifications: showNotificationsCheckbox.checked,
+            showAnimations: showAnimationsCheckbox.checked,
+            blockedAuthors: textarea.value.split('\n').map(line => line.trim()).filter(line => line)
+        };
+        browser.storage.local.set(settings, () => {
+            if (browser.runtime.lastError) {
+                console.error('Storage error:', browser.runtime.lastError);
+                return;
+            }
+            statusElement.textContent = "Ayarlar kaydedildi!";
             setTimeout(() => statusElement.textContent = "", 2000);
         });
+    }
+
+    [showNotificationsCheckbox, showAnimationsCheckbox].forEach(checkbox => {
+        checkbox.addEventListener('change', saveSettings);
     });
+
+    saveButton.addEventListener('click', saveSettings);
 
     // Yedekleme butonu
     document.getElementById('exportButton').addEventListener('click', function() {
-        browser.storage.local.get('blockedAuthors').then((result) => {
+        browser.storage.local.get('blockedAuthors', (result) => {
+            if (browser.runtime.lastError) {
+                console.error('Storage error:', browser.runtime.lastError);
+                return;
+            }
             if (result.blockedAuthors) {
                 const blob = new Blob([result.blockedAuthors.join('\n')], { type: 'text/plain' });
                 const url = URL.createObjectURL(blob);
@@ -64,7 +86,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         .map(line => line.trim())
                         .filter(line => line.length > 0);
 
-                    browser.storage.local.set({ blockedAuthors }).then(() => {
+                    browser.storage.local.set({ blockedAuthors }, () => {
+                        if (browser.runtime.lastError) {
+                            console.error('Storage error:', browser.runtime.lastError);
+                            return;
+                        }
                         textarea.value = blockedAuthors.join('\n');
                         statusElement.textContent = "Liste başarıyla yüklendi!";
                         setTimeout(() => statusElement.textContent = "", 2000);
@@ -80,18 +106,5 @@ document.addEventListener('DOMContentLoaded', function() {
             // Dosya seçimi tamamlandıktan sonra input'u sıfırla
             e.target.value = '';
         }
-    });
-
-    // Ayarları yükle
-    browser.storage.local.get(['showNotifications', 'showAnimations']).then((result) => {
-        document.getElementById('showNotifications').checked = result.showNotifications !== false;
-        document.getElementById('showAnimations').checked = result.showAnimations !== false;
-    });
-
-    // Ayarları kaydet
-    ['showNotifications', 'showAnimations'].forEach(id => {
-        document.getElementById(id).addEventListener('change', function() {
-            browser.storage.local.set({ [id]: this.checked });
-        });
     });
 });

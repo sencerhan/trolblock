@@ -3,32 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trolblock Uzantısı</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Trolblock Ayarları</title>
+    <link rel="stylesheet" href="../styles.css">
 </head>
 <body>
-    <div id="popup-container">
-        <h1>Trolsüz günler efendim.</h1>
-        <p>Engellemek istediğiniz kullanıcıları satır satır girin:</p>
-        <textarea id="blockedAuthors" rows="4" cols="30"></textarea>
-        <button id="saveButton">Kaydet</button>
+    <div id="options-container">
+        <h1>Trolblock Ayarları</h1>
         <div class="settings" style="margin: 10px 0; text-align: left;">
             <label style="display: block; margin: 5px 0;">
-                <input type="checkbox" id="showNotifications" checked>
+                <input type="checkbox" id="showNotifications">
                 Bildirimleri göster
             </label>
             <label style="display: block; margin: 5px 0;">
-                <input type="checkbox" id="showAnimations" checked>
+                <input type="checkbox" id="showAnimations">
                 Animasyonlu silme efektini göster
             </label>
         </div>
+        <h2>Engellenen Yazarlar</h2>
+        <textarea id="blockedAuthors" rows="8" cols="50" placeholder="Engellenen yazarları satır satır girin..."></textarea>
+        <button id="saveButton">Kaydet</button>
         <div class="backup-controls" style="margin-top: 10px;">
             <button id="exportButton">Listeyi Yedekle</button>
             <button id="importButton">Liste Yükle</button>
             <input type="file" id="importInput" style="display: none;" accept=".txt">
         </div>
-        <p id="status"></p>
+        <p id="status" style="color: green;"></p>
     </div>
-    <script src="popup.js"></script>
+    <script src="options.js"></script>
 </body>
 </html>

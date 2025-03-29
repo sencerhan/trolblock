@@ -1,32 +1,45 @@
+// Polyfill: browser API'si yoksa chrome API'sini kullan
+if (typeof browser === "undefined") {
+    var browser = chrome;
+}
+
+const storage = navigator.userAgent.includes('Firefox') ? browser.storage.local : browser.storage.sync;
+
 // Uzantı yüklendiğinde varsayılan değerleri başlat
-chrome.runtime.onInstalled.addListener(() => {
-    chrome.storage.sync.get(['blockedAuthors', 'showNotifications', 'showAnimations'], (result) => {
+browser.runtime.onInstalled.addListener(() => {
+    storage.get(['blockedAuthors', 'showNotifications', 'showAnimations'], (result) => {
         const defaults = {
             blockedAuthors: result.blockedAuthors || [],
             showNotifications: result.showNotifications !== false,
             showAnimations: result.showAnimations !== false
         };
-        chrome.storage.sync.set(defaults);
+        storage.set(defaults);
     });
 });
 
 // Popup veya content scriptlerden gelen mesajları dinle
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "getBlockedAuthors") {
-        chrome.storage.sync.get(['blockedAuthors'], (result) => {
+        storage.get(['blockedAuthors'], (result) => {
             sendResponse({ blockedAuthors: result.blockedAuthors || [] });
         });
         return true;
     } else if (message.action === "updateBlockedAuthors") {
         const blockedAuthors = message.blockedAuthors || [];
-        chrome.storage.sync.set({ blockedAuthors }, () => {
-            if (chrome.runtime.lastError) {
-                console.error('Storage error:', chrome.runtime.lastError);
-                sendResponse({ success: false, error: chrome.runtime.lastError });
+        storage.set({ blockedAuthors }, () => {
+            if (browser.runtime.lastError) {
+                console.error('Storage error:', browser.runtime.lastError);
+                sendResponse({ success: false, error: browser.runtime.lastError });
             } else {
                 sendResponse({ success: true });
             }
         });
         return true;
+    } else if (message.action === "reloadPopup") {
+        browser.action.openPopup();
     }
+});
+
+browser.browserAction.onClicked.addListener(() => {
+    browser.tabs.create({ url: browser.runtime.getURL("src/options/options.html") });
 });

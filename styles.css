@@ -1,0 +1,32 @@
+#popup-container {
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+textarea {
+    width: 100%;
+    resize: none;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+label {
+    font-size: 14px;
+}
+
+#status {
+    margin-top: 10px;
+    font-size: 14px;
+}
