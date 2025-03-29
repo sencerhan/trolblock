@@ -66,17 +66,60 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Ayarları kaydet
     function saveSettings() {
+        const blockedAuthors = textarea.value.split('\n').map(line => line.trim()).filter(line => line);
+        
         const settings = {
             showNotifications: showNotificationsCheckbox.checked,
             showAnimations: showAnimationsCheckbox.checked,
-            blockedAuthors: textarea.value.split('\n').map(line => line.trim()).filter(line => line)
+            blockedAuthors: blockedAuthors
         };
+        
+        // Ayarları storage'a kaydet
         browser.storage.local.set(settings, () => {
             if (browser.runtime.lastError) {
                 console.error('Storage error:', browser.runtime.lastError);
+                statusElement.textContent = "Ayarlar kaydedilirken hata oluştu!";
                 return;
             }
+            
+            // Ayarların kaydedildiğini bildir
             statusElement.textContent = "Ayarlar kaydedildi!";
+            
+            // Tüm aktif tablara değişiklikleri bildir
+            browser.runtime.sendMessage({
+                action: "updateBlockedAuthors",
+                blockedAuthors: blockedAuthors
+            }).then(() => {
+                console.log("Blocked authors updated in background script");
+                
+                // Ayarları aktif tablara gönder
+                browser.tabs.query({}, (tabs) => {
+                    tabs.forEach(tab => {
+                        // Tüm tablara ayarların güncellendiğini bildir
+                        browser.tabs.sendMessage(tab.id, {
+                            action: "updateSettings", 
+                            settings: {
+                                showNotifications: settings.showNotifications,
+                                showAnimations: settings.showAnimations
+                            }
+                        }).catch(err => {
+                            console.log("Error sending settings to tab", tab.id, err);
+                        });
+                        
+                        // Engellenen yazarlar listesini güncelle
+                        browser.tabs.sendMessage(tab.id, {
+                            action: "updateBlockedAuthors",
+                            blockedAuthors: blockedAuthors
+                        }).catch(err => {
+                            console.log("Error sending blocked authors to tab", tab.id, err);
+                        });
+                    });
+                });
+            }).catch(error => {
+                console.error("Error updating blocked authors:", error);
+            });
+            
+            // 2 saniye sonra durum mesajını temizle
             setTimeout(() => statusElement.textContent = "", 2000);
         });
     }

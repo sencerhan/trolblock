@@ -37,6 +37,19 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 sendResponse({ success: false, error: browser.runtime.lastError });
             } else {
                 console.log("[Trolblock] Blocked authors updated successfully");
+                
+                // Broadcast to all tabs
+                browser.tabs.query({}, (tabs) => {
+                    tabs.forEach(tab => {
+                        browser.tabs.sendMessage(tab.id, {
+                            action: "updateBlockedAuthors",
+                            blockedAuthors: blockedAuthors
+                        }).catch(err => {
+                            console.log("[Trolblock] Error sending to tab", tab.id, err);
+                        });
+                    });
+                });
+                
                 sendResponse({ success: true });
             }
         });
@@ -54,6 +67,17 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     } else if (message.action === "reloadPopup") {
         browser.action.openPopup();
+    } else if (message.action === "updateSettings") {
+        console.log("[Trolblock] Updating settings");
+        
+        // Broadcast settings to all tabs
+        browser.tabs.query({}, (tabs) => {
+            tabs.forEach(tab => {
+                browser.tabs.sendMessage(tab.id, message).catch(err => {
+                    console.log("[Trolblock] Error sending settings to tab", tab.id, err);
+                });
+            });
+        });
     }
 });
 
