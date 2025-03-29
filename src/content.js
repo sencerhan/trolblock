@@ -104,6 +104,7 @@ function isTwitter() {
 
 // Bildirim göster
 function showNotification(count) {
+  loadStoredData();
   if (!settings.showNotifications) return;
 
   if (notificationTimeout) {
@@ -159,7 +160,7 @@ function showNotification(count) {
 
 function removeWithAnimation(element) {
   console.log('[Trolblock] removeWithAnimation called, showAnimations setting:', settings.showAnimations);
-
+  loadStoredData();
   if (!settings.showAnimations) {
     console.log('[Trolblock] Animations disabled, removing element immediately');
     element.remove();
@@ -234,7 +235,7 @@ function removeWithAnimation(element) {
 
 function removeTwitterWithAnimation(article, username) {
   console.log(`[Trolblock] Removing Twitter content from user: ${username}`);
-
+  loadStoredData();
   if (!settings.showAnimations) {
     article.style.display = 'none';
     showNotification(1);
