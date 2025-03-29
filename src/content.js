@@ -36,16 +36,16 @@ let settings = {
 // Ana başlatma fonksiyonu
 function initializeExtension() {
   console.log('[Trolblock] Initializing extension');
-  
+
   // Ayarları ve engellenen yazarları yükle
   loadStoredData()
     .then(() => {
       // Sayfa tipine göre uygun işlevleri başlat
       setupPageSpecificFeatures();
-      
+
       // Mesaj dinleyicisini ayarla
       setupMessageListener();
-      
+
       // Sayfa kapanırken temizlik yap
       window.addEventListener('beforeunload', cleanup);
     })
@@ -61,14 +61,14 @@ async function loadStoredData() {
     const settingsResult = await new Promise(resolve => {
       browser.storage.local.get(['showNotifications', 'showAnimations'], resolve);
     });
-    
+
     settings.showNotifications = settingsResult.showNotifications !== false;
     settings.showAnimations = settingsResult.showAnimations !== false;
-    
+
     // Engellenen yazarları yükle
     const response = await browser.runtime.sendMessage({ action: "getBlockedAuthors" });
     blockedAuthors = response?.blockedAuthors || [];
-    
+
     console.log('[Trolblock] Settings and blocked authors loaded:', blockedAuthors.length);
     return true;
   } catch (error) {
@@ -86,7 +86,7 @@ function setupPageSpecificFeatures() {
     console.log('[Trolblock] Setting up Eksisozluk features');
     setupEksiFeatures();
   }
-  
+
   // Sayfada engellenen içerikleri kaldır (hem Twitter hem de Ekşi için)
   setTimeout(removeBlockedContent, 500);
   setTimeout(removeBlockedContent, 1500);
@@ -159,7 +159,7 @@ function showNotification(count) {
 
 function removeWithAnimation(element) {
   console.log('[Trolblock] removeWithAnimation called, showAnimations setting:', settings.showAnimations);
-  
+
   if (!settings.showAnimations) {
     console.log('[Trolblock] Animations disabled, removing element immediately');
     element.remove();
@@ -170,7 +170,7 @@ function removeWithAnimation(element) {
   try {
     const gifUrl = browser.runtime.getURL("gif/boom.gif");
     console.log('[Trolblock] Animation GIF URL:', gifUrl);
-    
+
     const overlay = document.createElement("div");
     overlay.className = "trolblock-animation-overlay";
     overlay.style.cssText = `
@@ -195,7 +195,7 @@ function removeWithAnimation(element) {
       object-fit: contain;
       max-width: 300px;
     `;
-    
+
     gif.onload = () => console.log('[Trolblock] GIF loaded successfully');
     gif.onerror = (e) => {
       console.error('[Trolblock] GIF failed to load:', e);
@@ -210,13 +210,13 @@ function removeWithAnimation(element) {
       `;
       overlay.appendChild(fallbackText);
     };
-    
+
     overlay.appendChild(gif);
 
     // Ensure element has position for absolute positioning to work
     const originalPosition = element.style.position;
     element.style.position = "relative";
-    
+
     console.log('[Trolblock] Adding animation overlay to element');
     element.appendChild(overlay);
 
@@ -234,7 +234,7 @@ function removeWithAnimation(element) {
 
 function removeTwitterWithAnimation(article, username) {
   console.log(`[Trolblock] Removing Twitter content from user: ${username}`);
-  
+
   if (!settings.showAnimations) {
     article.style.display = 'none';
     showNotification(1);
@@ -269,7 +269,7 @@ function removeTwitterWithAnimation(article, username) {
       font-weight: bold;
       margin-bottom: 20px;
     `;
-    
+
     const gif = document.createElement("img");
     gif.src = gifUrl;
     gif.style.cssText = `
@@ -278,14 +278,14 @@ function removeTwitterWithAnimation(article, username) {
       object-fit: contain;
       max-width: 300px;
     `;
-    
+
     //overlay.appendChild(text);
     overlay.appendChild(gif);
 
     // Ensure article has position for absolute positioning to work
     const originalPosition = article.style.position;
     //article.style.position = "relative";
-    
+
     // Check if overlay already exists before appending
     const existingOverlay = article.querySelector('.trolblock-twitter-animation');
     if (!existingOverlay) {
@@ -293,7 +293,7 @@ function removeTwitterWithAnimation(article, username) {
     }
 
     setTimeout(() => {
-       article.style.display = 'none';
+      article.style.display = 'none';
       //article.remove();
       showNotification(1);
     }, 1600);
@@ -311,10 +311,10 @@ function removeTwitterWithAnimation(article, username) {
 function setupEksiFeatures() {
   // Ekşi için blok butonlarını ekle
   addBlockButtons();
-  
+
   // Ekşi için gözlemci ekle
   if (pageObserver) pageObserver.disconnect();
-  
+
   pageObserver = new MutationObserver(() => {
     clearTimeout(throttleTimer);
     throttleTimer = setTimeout(() => {
@@ -322,12 +322,12 @@ function setupEksiFeatures() {
       removeBlockedComments();
     }, 250);
   });
-  
+
   pageObserver.observe(document.body, {
     childList: true,
     subtree: true
   });
-  
+
   // Scroll olayını dinle
   window.addEventListener("scroll", removeBlockedComments);
 }
@@ -338,8 +338,8 @@ function addBlockButtons() {
     const parentLi = favLink.closest("li[data-author]");
     if (!parentLi) return;
 
-    if (favLink.nextElementSibling?.classList.contains("trolblock-button") || 
-        parentLi.getAttribute('data-trolblock-processed') === 'true') {
+    if (favLink.nextElementSibling?.classList.contains("trolblock-button") ||
+      parentLi.getAttribute('data-trolblock-processed') === 'true') {
       return;
     }
 
@@ -380,7 +380,7 @@ function addBlockButtons() {
                 .then(() => {
                   blockedAuthors = newList;
                   removeBlockedComments(); // Engellenen yorumları hemen kaldır
-                  
+
                   // Options sayfasına güncelleme mesajı gönder
                   browser.runtime.sendMessage({
                     action: "refreshOptionsPage",
@@ -411,7 +411,7 @@ function addBlockButtons() {
 function removeBlockedComments() {
   const commentElements = document.querySelectorAll("li[data-author]");
   let removedCount = 0;
-  
+
   commentElements.forEach((element) => {
     if (blockedAuthors.includes(element.getAttribute("data-author"))) {
       const rect = element.getBoundingClientRect();
@@ -423,7 +423,7 @@ function removeBlockedComments() {
       }
     }
   });
-  
+
   return removedCount;
 }
 
@@ -433,22 +433,22 @@ function removeBlockedComments() {
 function setupTwitterFeatures() {
   // Twitter için gözlemci ekle
   if (pageObserver) pageObserver.disconnect();
-  
+
   pageObserver = new MutationObserver((mutations) => {
     clearTimeout(throttleTimer);
-    
-    const shouldUpdate = mutations.some(mutation => 
-      mutation.type === 'childList' && 
+
+    const shouldUpdate = mutations.some(mutation =>
+      mutation.type === 'childList' &&
       mutation.addedNodes.length > 0 &&
-      Array.from(mutation.addedNodes).some(node => 
+      Array.from(mutation.addedNodes).some(node =>
         node.nodeType === 1 && (
-          node.tagName === 'ARTICLE' || 
+          node.tagName === 'ARTICLE' ||
           node.querySelector('article') ||
           (node.textContent && node.textContent.includes('@'))
         )
       )
     );
-    
+
     if (shouldUpdate) {
       throttleTimer = setTimeout(() => {
         addTwitterBlockButtons();
@@ -456,31 +456,22 @@ function setupTwitterFeatures() {
       }, 250);
     }
   });
-  
+
   pageObserver.observe(document.body, {
     childList: true,
     subtree: true
   });
-  
-  // Her 5 saniyede bir Twitter içeriğini kontrol et (sınırlı süre için)
-  const checkInterval = setInterval(() => {
-    addTwitterBlockButtons();
-    removeTwitterBlocked();
-  }, 5000);
-  
-  // 2 dakika sonra interval'i temizle
-  setTimeout(() => clearInterval(checkInterval), 2 * 60 * 1000);
 }
 
 // Twitter için blok butonları ekle
 function addTwitterBlockButtons() {
   if (!isTwitter()) return;
-  
+
   const articles = findTwitterArticles();
-  
+
   articles.forEach((article) => {
-    if (article.querySelector('.trolblock-twitter-button') || 
-        article.getAttribute('data-trolblock-processed') === 'true') {
+    if (article.querySelector('.trolblock-twitter-button') ||
+      article.getAttribute('data-trolblock-processed') === 'true') {
       return;
     }
 
@@ -491,7 +482,7 @@ function addTwitterBlockButtons() {
     }
 
     article.setAttribute('data-trolblock-processed', 'true');
-    
+
     const blockButton = document.createElement("div");
     blockButton.className = "trolblock-twitter-button";
     blockButton.style.cssText = `
@@ -518,12 +509,12 @@ function addTwitterBlockButtons() {
     blockButton.addEventListener("click", (e) => {
       e.stopPropagation();
       console.log('[Trolblock] Block button clicked');
-      
+
       let username = findTwitterUsername(article);
-      
+
       if (username) {
         console.log('[Trolblock] Found username:', username);
-        
+
         browser.runtime.sendMessage({ action: "getBlockedAuthors" })
           .then((response) => {
             const currentList = response.blockedAuthors || [];
@@ -533,21 +524,21 @@ function addTwitterBlockButtons() {
                 action: "updateBlockedAuthors",
                 blockedAuthors: newList,
               })
-              .then(() => {
-                blockedAuthors = newList;
-                
-                browser.runtime.sendMessage({
-                  action: "refreshOptionsPage",
-                  blockedAuthors: newList
+                .then(() => {
+                  blockedAuthors = newList;
+
+                  browser.runtime.sendMessage({
+                    action: "refreshOptionsPage",
+                    blockedAuthors: newList
+                  });
+
+                  showNotification(1);
+
+                  removeTwitterBlocked();
+                })
+                .catch((error) => {
+                  console.error("Error updating blocked authors:", error);
                 });
-                
-                showNotification(1);
-                
-                removeTwitterBlocked();
-              })
-              .catch((error) => {
-                console.error("Error updating blocked authors:", error);
-              });
             }
           })
           .catch((error) => {
@@ -567,14 +558,14 @@ function addTwitterBlockButtons() {
 
 function findTwitterArticles() {
   const selectors = [
-    'article', 
-    'div[data-testid="tweet"]', 
+    'article',
+    'div[data-testid="tweet"]',
     'div[data-testid="tweetDetail"]',
     'div[data-testid="cellInnerDiv"]'
   ];
-  
+
   let articles = [];
-  
+
   for (const selector of selectors) {
     const found = document.querySelectorAll(selector);
     console.log(`[Trolblock] Selector "${selector}" found ${found.length} elements`);
@@ -582,28 +573,28 @@ function findTwitterArticles() {
       articles = articles.concat(Array.from(found));
     }
   }
-  
+
   articles = [...new Set(articles)];
   console.log(`[Trolblock] Total unique tweet containers found: ${articles.length}`);
-  
+
   return articles;
 }
 
 function findTwitterUsername(container) {
   const usernameSelectors = [
-    'div[data-testid="User-Name"] span', 
-    'a[role="link"] span', 
-    'span[data-testid="tweetText"] a', 
+    'div[data-testid="User-Name"] span',
+    'a[role="link"] span',
+    'span[data-testid="tweetText"] a',
   ];
-  
+
   let username = null;
-  
+
   for (const selector of usernameSelectors) {
     const elements = container.querySelectorAll(selector);
-    
+
     for (const element of elements) {
       const text = element.textContent.trim();
-      
+
       if (text.includes('@')) {
         username = text.replace('@', '');
         console.log(`[Trolblock] Found username: @${username}`);
@@ -611,7 +602,7 @@ function findTwitterUsername(container) {
       }
     }
   }
-  
+
   if (!username && container.textContent.includes('@')) {
     const matches = container.textContent.match(/@(\w+)/);
     if (matches && matches[1]) {
@@ -620,29 +611,33 @@ function findTwitterUsername(container) {
       return username;
     }
   }
-  
+
   return null;
 }
 
 function removeTwitterBlocked() {
   if (!isTwitter()) return;
-  
+
   console.log('[Trolblock] Checking for blocked Twitter content...');
   const articles = findTwitterArticles();
   console.log('[Trolblock] Scanning for blocked users in', articles.length, 'containers');
-  
+
   let blockedCount = 0;
-  
+
   articles.forEach((article) => {
     const username = findTwitterUsername(article);
-    
+
     if (username && blockedAuthors.includes(username)) {
-      console.log(`[Trolblock] Blocked user found: ${username}`);
+      const isVisible = article.top >= 0 && article.bottom <= window.innerHeight;
+      if (isVisible) {
+        removeWithAnimation(article);
+        removedCount++;
+      }
       removeTwitterWithAnimation(article, username);
       blockedCount++;
     }
   });
-  
+
   console.log('[Trolblock] Total blocked tweet containers:', blockedCount);
 }
 
@@ -665,11 +660,11 @@ function setupMessageListener() {
         blockedAuthors = message.blockedAuthors || [];
         removeBlockedContent();
         break;
-        
+
       case "updateSettings":
         Object.assign(settings, message.settings);
         break;
-        
+
       case "refreshBlockList":
         loadStoredData().then(removeBlockedContent);
         break;
@@ -684,12 +679,12 @@ function cleanup() {
     pageObserver.disconnect();
     pageObserver = null;
   }
-  
+
   if (throttleTimer) {
     clearTimeout(throttleTimer);
     throttleTimer = null;
   }
-  
+
   if (notificationTimeout) {
     clearTimeout(notificationTimeout);
     notificationTimeout = null;
@@ -706,6 +701,14 @@ if (document.readyState === 'loading') {
 }
 
 // Sayfa yüklendiğinde ek kontrol
+window.addEventListener('scroll', () => {
+  if (isTwitter()) {
+    addTwitterBlockButtons();
+    removeTwitterBlocked();
+  } else {
+    removeBlockedComments();
+  }
+});
 window.addEventListener('load', () => {
   console.log('[Trolblock] Window load event fired');
   setTimeout(removeBlockedContent, 500);
