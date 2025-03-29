@@ -19,32 +19,90 @@ if (typeof browser === "undefined") {
   };
 }
 
+// Temel değişkenler
 let blockedAuthors = [];
 let throttleTimer;
 let activeNotification = null;
-let removedTotalCount = 0;
 let notificationTimeout = null;
+let pageObserver = null;
 
 let settings = {
   showNotifications: true,
   showAnimations: true,
 };
 
-// Ayarları yükle
-function loadSettings() {
-  browser.storage.local.get(
-    ["showNotifications", "showAnimations"],
-    (result) => {
-      if (browser.runtime.lastError) {
-        console.error("Storage error:", browser.runtime.lastError);
-        return;
-      }
-      settings.showNotifications = result.showNotifications !== false;
-      settings.showAnimations = result.showAnimations !== false;
-    }
-  );
+// ===== UYGULAMA BAŞLATMA =====
+
+// Ana başlatma fonksiyonu
+function initializeExtension() {
+  console.log('[Trolblock] Initializing extension');
+  
+  // Ayarları ve engellenen yazarları yükle
+  loadStoredData()
+    .then(() => {
+      // Sayfa tipine göre uygun işlevleri başlat
+      setupPageSpecificFeatures();
+      
+      // Mesaj dinleyicisini ayarla
+      setupMessageListener();
+      
+      // Sayfa kapanırken temizlik yap
+      window.addEventListener('beforeunload', cleanup);
+    })
+    .catch(error => {
+      console.error('[Trolblock] Initialization error:', error);
+    });
 }
 
+// Storage'dan verileri yükle
+async function loadStoredData() {
+  try {
+    // Ayarları yükle
+    const settingsResult = await new Promise(resolve => {
+      browser.storage.local.get(['showNotifications', 'showAnimations'], resolve);
+    });
+    
+    settings.showNotifications = settingsResult.showNotifications !== false;
+    settings.showAnimations = settingsResult.showAnimations !== false;
+    
+    // Engellenen yazarları yükle
+    const response = await browser.runtime.sendMessage({ action: "getBlockedAuthors" });
+    blockedAuthors = response?.blockedAuthors || [];
+    
+    console.log('[Trolblock] Settings and blocked authors loaded:', blockedAuthors.length);
+    return true;
+  } catch (error) {
+    console.error('[Trolblock] Error loading stored data:', error);
+    return false;
+  }
+}
+
+// Sayfa tipine göre özellikler
+function setupPageSpecificFeatures() {
+  if (isTwitter()) {
+    console.log('[Trolblock] Setting up Twitter features');
+    setupTwitterFeatures();
+  } else {
+    console.log('[Trolblock] Setting up Eksisozluk features');
+    setupEksiFeatures();
+  }
+  
+  // Sayfada engellenen içerikleri kaldır (hem Twitter hem de Ekşi için)
+  setTimeout(removeBlockedContent, 500);
+  setTimeout(removeBlockedContent, 1500);
+  setTimeout(removeBlockedContent, 3000);
+}
+
+// ===== PLATFORM BELİRLEME =====
+
+// Twitter veya Ekşi kontrolü
+function isTwitter() {
+  return window.location.hostname.includes('x.com') || window.location.hostname.includes('twitter.com');
+}
+
+// ===== BİLDİRİM VE ANİMASYON =====
+
+// Bildirim göster
 function showNotification(count) {
   if (!settings.showNotifications) return;
 
@@ -73,30 +131,30 @@ function showNotification(count) {
   notification.appendChild(text);
 
   notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #4CAF50;
-        color: white;
-        padding: 20px;
-        border-radius: 8px;
-        z-index: 99999;
-        opacity: 1;
-        transition: opacity 0.5s;
-        display: flex;
-        align-items: center;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        min-width: 250px;
-        min-height: 50px;
-    `;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #4CAF50;
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    z-index: 99999;
+    opacity: 1;
+    transition: opacity 0.5s;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    min-width: 250px;
+    min-height: 50px;
+  `;
 
   document.body.appendChild(notification);
   activeNotification = notification;
 
-  setTimeout(() => {
+  notificationTimeout = setTimeout(() => {
     notification.remove();
     activeNotification = null;
-  }, 4000); // 4 saniye sonra kaybolacak
+  }, 4000);
 }
 
 function removeWithAnimation(element) {
@@ -174,7 +232,6 @@ function removeWithAnimation(element) {
   }
 }
 
-// Twitter blocklama için animasyonlu silme
 function removeTwitterWithAnimation(article, username) {
   console.log(`[Trolblock] Removing Twitter content from user: ${username}`);
   
@@ -248,36 +305,44 @@ function removeTwitterWithAnimation(article, username) {
   }
 }
 
-function removeBlockedComments() {
-  loadSettings();
-  const commentElements = document.querySelectorAll("li[data-author]");
-  commentElements.forEach((element) => {
-    if (blockedAuthors.includes(element.getAttribute("data-author"))) {
-      const rect = element.getBoundingClientRect();
-      const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
-      if (isVisible) {
-        removeWithAnimation(element);
-        removedTotalCount++;
-      }
-    }
+// ===== EKŞİSÖZLÜK FONKSİYONLARI =====
+
+// Ekşisözlük özelliklerini ayarla
+function setupEksiFeatures() {
+  // Ekşi için blok butonlarını ekle
+  addBlockButtons();
+  
+  // Ekşi için gözlemci ekle
+  if (pageObserver) pageObserver.disconnect();
+  
+  pageObserver = new MutationObserver(() => {
+    clearTimeout(throttleTimer);
+    throttleTimer = setTimeout(() => {
+      addBlockButtons();
+      removeBlockedComments();
+    }, 250);
   });
+  
+  pageObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+  
+  // Scroll olayını dinle
+  window.addEventListener("scroll", removeBlockedComments);
 }
 
-//add event listener scroll
-window.addEventListener("scroll", removeBlockedComments);
+// Blok butonları ekle (Ekşi)
 function addBlockButtons() {
   document.querySelectorAll(".favorite-links").forEach((favLink) => {
-    // Sadece li içerisindeki favorite-links için işlem yap
     const parentLi = favLink.closest("li[data-author]");
     if (!parentLi) return;
 
-    // Eğer buton zaten eklenmişse veya işaretlenmişse tekrar ekleme
     if (favLink.nextElementSibling?.classList.contains("trolblock-button") || 
         parentLi.getAttribute('data-trolblock-processed') === 'true') {
       return;
     }
 
-    // İşlendiğini işaretle
     parentLi.setAttribute('data-trolblock-processed', 'true');
 
     const blockButton = document.createElement("a");
@@ -342,76 +407,91 @@ function addBlockButtons() {
   });
 }
 
-// Sayfa yüklendiğinde ve DOM değişikliklerinde butonları ekle
-const observeContent = new MutationObserver(() => {
-  clearTimeout(throttleTimer);
-  throttleTimer = setTimeout(() => {
-    addBlockButtons();
-    removeBlockedComments();
-  }, 250);
-});
-
-// Twitter/X.com için özel fonksiyonlar
-function isTwitter() {
-  const result = window.location.hostname.includes('x.com') || window.location.hostname.includes('twitter.com');
-  console.log('[Trolblock] Twitter check:', result, 'URL:', window.location.hostname);
-  return result;
-}
-
-function findTwitterArticles() {
-  // Try multiple selectors to find tweet containers
-  const selectors = [
-    'article', 
-    'div[data-testid="tweet"]', 
-    'div[data-testid="tweetDetail"]',
-    'div[data-testid="cellInnerDiv"]'
-  ];
+// Ekşi için engellenen yorumları kaldır
+function removeBlockedComments() {
+  const commentElements = document.querySelectorAll("li[data-author]");
+  let removedCount = 0;
   
-  let articles = [];
-  
-  for (const selector of selectors) {
-    const found = document.querySelectorAll(selector);
-    console.log(`[Trolblock] Selector "${selector}" found ${found.length} elements`);
-    if (found.length > 0) {
-      articles = articles.concat(Array.from(found));
+  commentElements.forEach((element) => {
+    if (blockedAuthors.includes(element.getAttribute("data-author"))) {
+      const rect = element.getBoundingClientRect();
+      const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+      if (isVisible && !element.getAttribute('data-trolblock-removing')) {
+        element.setAttribute('data-trolblock-removing', 'true');
+        removeWithAnimation(element);
+        removedCount++;
+      }
     }
-  }
+  });
   
-  // Remove duplicates
-  articles = [...new Set(articles)];
-  console.log(`[Trolblock] Total unique tweet containers found: ${articles.length}`);
-  
-  return articles;
+  return removedCount;
 }
 
+// ===== TWITTER FONKSİYONLARI =====
+
+// Twitter özelliklerini ayarla
+function setupTwitterFeatures() {
+  // Twitter için gözlemci ekle
+  if (pageObserver) pageObserver.disconnect();
+  
+  pageObserver = new MutationObserver((mutations) => {
+    clearTimeout(throttleTimer);
+    
+    const shouldUpdate = mutations.some(mutation => 
+      mutation.type === 'childList' && 
+      mutation.addedNodes.length > 0 &&
+      Array.from(mutation.addedNodes).some(node => 
+        node.nodeType === 1 && (
+          node.tagName === 'ARTICLE' || 
+          node.querySelector('article') ||
+          (node.textContent && node.textContent.includes('@'))
+        )
+      )
+    );
+    
+    if (shouldUpdate) {
+      throttleTimer = setTimeout(() => {
+        addTwitterBlockButtons();
+        removeTwitterBlocked();
+      }, 250);
+    }
+  });
+  
+  pageObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+  
+  // Her 5 saniyede bir Twitter içeriğini kontrol et (sınırlı süre için)
+  const checkInterval = setInterval(() => {
+    addTwitterBlockButtons();
+    removeTwitterBlocked();
+  }, 5000);
+  
+  // 2 dakika sonra interval'i temizle
+  setTimeout(() => clearInterval(checkInterval), 2 * 60 * 1000);
+}
+
+// Twitter için blok butonları ekle
 function addTwitterBlockButtons() {
   if (!isTwitter()) return;
   
-  console.log('[Trolblock] Searching for Twitter tweet containers...');
   const articles = findTwitterArticles();
   
-  // Twitter'da tweet container elementlerini bul
-  articles.forEach((article, index) => {
-    // Daha kapsamlı bir kontrol ile butonun zaten eklenmiş olup olmadığını kontrol et
-    if (article.querySelector('.trolblock-twitter-button') || article.getAttribute('data-trolblock-processed') === 'true') {
+  articles.forEach((article) => {
+    if (article.querySelector('.trolblock-twitter-button') || 
+        article.getAttribute('data-trolblock-processed') === 'true') {
       return;
     }
 
-    // Önce kullanıcı adı var mı kontrol et
     const username = findTwitterUsername(article);
     if (!username) {
-      // Eğer kullanıcı adı yoksa işaretle ama buton ekleme
       article.setAttribute('data-trolblock-processed', 'true');
-      console.log(`[Trolblock] No username found in article #${index}, skipping button`);
       return;
     }
 
-    // İşlendiğini işaretle
     article.setAttribute('data-trolblock-processed', 'true');
     
-    console.log(`[Trolblock] Adding button to tweet container #${index} for user @${username}`);
-    
-    // Buton oluştur
     const blockButton = document.createElement("div");
     blockButton.className = "trolblock-twitter-button";
     blockButton.style.cssText = `
@@ -430,18 +510,15 @@ function addTwitterBlockButtons() {
       box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     `;
 
-    // İkonu oluştur
     const img = document.createElement("img");
     img.src = browser.runtime.getURL("icons/icon48.png");
     img.style.cssText = "width:24px;height:24px;";
     blockButton.appendChild(img);
 
-    // Tıklama olayında @ içeren span'ı bul ve engelle
     blockButton.addEventListener("click", (e) => {
       e.stopPropagation();
       console.log('[Trolblock] Block button clicked');
       
-      // @ işareti içeren farklı elementleri dene
       let username = findTwitterUsername(article);
       
       if (username) {
@@ -459,16 +536,13 @@ function addTwitterBlockButtons() {
               .then(() => {
                 blockedAuthors = newList;
                 
-                // Options sayfasına güncelleme mesajı gönder
                 browser.runtime.sendMessage({
                   action: "refreshOptionsPage",
                   blockedAuthors: newList
                 });
                 
-                // Kullanıcıya bildirim göster
                 showNotification(1);
                 
-                // Tweeti gizleme işlemi
                 removeTwitterBlocked();
               })
               .catch((error) => {
@@ -481,26 +555,45 @@ function addTwitterBlockButtons() {
           });
       } else {
         console.log('[Trolblock] No username found in this tweet!');
-        // HTML içeriğini loglayalım
         console.log('[Trolblock] Tweet container HTML:', article.outerHTML);
       }
     });
 
-    // Butonu article'a ekle
     article.style.position = "relative";
     article.appendChild(blockButton);
-    console.log(`[Trolblock] Button added to tweet container #${index}`);
+    console.log(`[Trolblock] Button added to tweet container`);
   });
 }
 
-function findTwitterUsername(container) {
-  // Bu fonksiyon sadece gerektiğinde çağrılacak ve loglanacak
+function findTwitterArticles() {
+  const selectors = [
+    'article', 
+    'div[data-testid="tweet"]', 
+    'div[data-testid="tweetDetail"]',
+    'div[data-testid="cellInnerDiv"]'
+  ];
   
-  // Try various selectors to find username - daha az log, daha hedefli arama
+  let articles = [];
+  
+  for (const selector of selectors) {
+    const found = document.querySelectorAll(selector);
+    console.log(`[Trolblock] Selector "${selector}" found ${found.length} elements`);
+    if (found.length > 0) {
+      articles = articles.concat(Array.from(found));
+    }
+  }
+  
+  articles = [...new Set(articles)];
+  console.log(`[Trolblock] Total unique tweet containers found: ${articles.length}`);
+  
+  return articles;
+}
+
+function findTwitterUsername(container) {
   const usernameSelectors = [
-    'div[data-testid="User-Name"] span', // Kullanıcı profil adı
-    'a[role="link"] span', // Bağlantı içindeki textler
-    'span[data-testid="tweetText"] a', // Tweet içindeki mention
+    'div[data-testid="User-Name"] span', 
+    'a[role="link"] span', 
+    'span[data-testid="tweetText"] a', 
   ];
   
   let username = null;
@@ -519,7 +612,6 @@ function findTwitterUsername(container) {
     }
   }
   
-  // Son çare olarak container içindeki tüm metni kontrol et
   if (!username && container.textContent.includes('@')) {
     const matches = container.textContent.match(/@(\w+)/);
     if (matches && matches[1]) {
@@ -541,12 +633,11 @@ function removeTwitterBlocked() {
   
   let blockedCount = 0;
   
-  articles.forEach((article, index) => {
+  articles.forEach((article) => {
     const username = findTwitterUsername(article);
     
     if (username && blockedAuthors.includes(username)) {
-      console.log(`[Trolblock] Blocked user found in container #${index}: ${username}`);
-      // Animasyonlu silme fonksiyonunu kullan
+      console.log(`[Trolblock] Blocked user found: ${username}`);
       removeTwitterWithAnimation(article, username);
       blockedCount++;
     }
@@ -555,157 +646,67 @@ function removeTwitterBlocked() {
   console.log('[Trolblock] Total blocked tweet containers:', blockedCount);
 }
 
-// Twitter için mutation observer ve interval checker
-function setupTwitterObserver() {
-  if (!isTwitter()) return;
-  
-  console.log('[Trolblock] Setting up Twitter observer');
-  
-  // Daha az loglama ve daha hedefli DOM değişikliği takibi
-  const twitterObserver = new MutationObserver((mutations) => {
-    clearTimeout(throttleTimer);
-    
-    // Sadece önemli DOM değişikliklerini işle - @ işareti içeren değişikliklere odaklan
-    let containsUsernames = false;
-    let newArticleAdded = false;
-    
-    // Sadece eklenen nodeları kontrol et
-    mutations.forEach(mutation => {
-      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-        mutation.addedNodes.forEach(node => {
-          if (node.nodeType === 1) { // Element Node
-            // Yeni article eklenmiş mi?
-            if (node.tagName === 'ARTICLE' || node.querySelector('article') || 
-                node.getAttribute('data-testid') === 'tweet' || 
-                node.getAttribute('data-testid') === 'cellInnerDiv') {
-              newArticleAdded = true;
-            }
-            
-            // İçeriğinde @ işareti var mı?
-            if (node.textContent && node.textContent.includes('@')) {
-              containsUsernames = true;
-            }
-          }
-        });
-      }
-    });
-    
-    // Article eklendiğinde veya @ işareti değiştiğinde güncelle
-    if (newArticleAdded || containsUsernames) {
-      throttleTimer = setTimeout(() => {
-        addTwitterBlockButtons();
-        removeTwitterBlocked();
-      }, 250);
-    }
-  });
-  
-  twitterObserver.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
-  
-  console.log('[Trolblock] Twitter observer is now active');
-  
-  // Interval'i daha az sıklıkta çalıştır
-  const twitterInterval = setInterval(() => {
-    addTwitterBlockButtons();
-    removeTwitterBlocked();
-  }, 3000); // 10 saniyede bir kontrol et
-  
-  // 2 dakika sonra interval'i temizle
-  setTimeout(() => clearInterval(twitterInterval), 2 * 60 * 1000);
-}
+// ===== ORTAK FONKSİYONLAR =====
 
-// Sayfa yüklendiğinde
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('[Trolblock] DOMContentLoaded event fired');
-  
+// Engellenen içeriği kaldır (platform bağımsız)
+function removeBlockedContent() {
   if (isTwitter()) {
-    console.log('[Trolblock] Twitter detected, initializing...');
-    // Log DOM structure for debugging
-    console.log('[Trolblock] Current page structure:', document.body.innerHTML.substring(0, 500) + '...');
-    
-    // Twitter için gözlemciyi başlat
-    setupTwitterObserver();
-    
-    // İlk yükleme için butonları ekle, daha uzun bekle
-    console.log('[Trolblock] Setting up initial delay for Twitter...');
-    setTimeout(() => {
-      console.log('[Trolblock] Initial Twitter processing...');
-      addTwitterBlockButtons();
-      removeTwitterBlocked();
-    }, 3000); // Twitter'ın yavaş yüklenmesi için daha uzun bekle
-  }
-});
-
-// İlk yükleme
-loadSettings();
-console.log('[Trolblock] Initial loading, fetching blocked authors...');
-browser.runtime
-  .sendMessage({ action: "getBlockedAuthors" })
-  .then((response) => {
-    if (response?.blockedAuthors) {
-      blockedAuthors = response.blockedAuthors;
-      console.log('[Trolblock] Blocked authors loaded:', blockedAuthors);
-      
-      if (isTwitter()) {
-        console.log('[Trolblock] Initializing Twitter features...');
-        addTwitterBlockButtons();
-        removeTwitterBlocked();
-        setupTwitterObserver();
-      } else {
-        console.log('[Trolblock] Initializing standard features...');
-        addBlockButtons();
-        removeBlockedComments();
-        
-        observeContent.observe(document.body, {
-          childList: true,
-          subtree: true,
-        });
-      }
-    }
-  })
-  .catch((error) => {
-    console.error("[Trolblock] Error fetching blocked authors:", error);
-  });
-
-// Engellenen yazarları yükle ve hemen başlat
-browser.runtime
-  .sendMessage({ action: "getBlockedAuthors" })
-  .then((response) => {
-    if (response?.blockedAuthors) {
-      blockedAuthors = response.blockedAuthors;
-      removeBlockedComments();
-
-      // Sadece gerekli container'ı izle
-      new MutationObserver(() => {
-        clearTimeout(throttleTimer);
-        throttleTimer = setTimeout(removeBlockedComments, 250);
-      }).observe(document.body, { childList: true, subtree: true });
-    }
-  })
-  .catch((error) => {
-    console.error("Error fetching blocked authors:", error);
-  });
-
-// Mesaj dinleyicileri
-browser.runtime.onMessage.addListener((message) => {
-  if (message.action === "updateBlockedAuthors") {
-    blockedAuthors = message.blockedAuthors || [];
+    removeTwitterBlocked();
+  } else {
     removeBlockedComments();
   }
-  if (message.action === "refreshBlockList") {
-    browser.runtime
-      .sendMessage({ action: "getBlockedAuthors" })
-      .then((response) => {
-        if (response?.blockedAuthors) {
-          blockedAuthors = response.blockedAuthors;
-          removeBlockedComments();
-        }
-      });
+}
+
+// Mesaj dinleyicisi
+function setupMessageListener() {
+  browser.runtime.onMessage.addListener((message) => {
+    switch (message.action) {
+      case "updateBlockedAuthors":
+        blockedAuthors = message.blockedAuthors || [];
+        removeBlockedContent();
+        break;
+        
+      case "updateSettings":
+        Object.assign(settings, message.settings);
+        break;
+        
+      case "refreshBlockList":
+        loadStoredData().then(removeBlockedContent);
+        break;
+    }
+    return true;
+  });
+}
+
+// Temizlik işlemleri
+function cleanup() {
+  if (pageObserver) {
+    pageObserver.disconnect();
+    pageObserver = null;
   }
-  if (message.action === "updateSettings") {
-    Object.assign(settings, message.settings);
+  
+  if (throttleTimer) {
+    clearTimeout(throttleTimer);
+    throttleTimer = null;
   }
-  return true;
+  
+  if (notificationTimeout) {
+    clearTimeout(notificationTimeout);
+    notificationTimeout = null;
+  }
+}
+
+// ===== BAŞLATMA =====
+
+// Sayfa tam yüklendiğinde veya zaten yüklendiyse başlat
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeExtension);
+} else {
+  initializeExtension();
+}
+
+// Sayfa yüklendiğinde ek kontrol
+window.addEventListener('load', () => {
+  console.log('[Trolblock] Window load event fired');
+  setTimeout(removeBlockedContent, 500);
 });
