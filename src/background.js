@@ -1,6 +1,3 @@
-// Import the browser polyfill for service worker
-importScripts('/browser-polyfill.js');
-
 // Uzantı yüklendiğinde varsayılan değerleri başlat
 browser.runtime.onInstalled.addListener(() => {
     browser.storage.sync.get(['blockedAuthors', 'showNotifications', 'showAnimations']).then((result) => {
