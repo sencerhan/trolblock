@@ -19,21 +19,37 @@ browser.runtime.onInstalled.addListener(() => {
 
 // Popup veya content scriptlerden gelen mesajları dinle
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('[Trolblock] Background received message:', message);
+    
     if (message.action === "getBlockedAuthors") {
         storage.get(['blockedAuthors'], (result) => {
-            console.log("Engelli yazarlar gönderiliyor:", result.blockedAuthors); // Debug için log ekle
+            console.log("[Trolblock] Sending blocked authors:", result.blockedAuthors);
             sendResponse({ blockedAuthors: result.blockedAuthors || [] });
         });
         return true; // Ensure the listener returns true to indicate async response
     } else if (message.action === "updateBlockedAuthors") {
         const blockedAuthors = message.blockedAuthors || [];
+        console.log("[Trolblock] Updating blocked authors:", blockedAuthors);
+        
         storage.set({ blockedAuthors }, () => {
             if (browser.runtime.lastError) {
-                console.error('Storage error:', browser.runtime.lastError);
+                console.error('[Trolblock] Storage error:', browser.runtime.lastError);
                 sendResponse({ success: false, error: browser.runtime.lastError });
             } else {
+                console.log("[Trolblock] Blocked authors updated successfully");
                 sendResponse({ success: true });
             }
+        });
+        return true;
+    } else if (message.action === "refreshOptionsPage") {
+        console.log("[Trolblock] Refreshing options page with:", message.blockedAuthors);
+        // Relay the message to all tabs
+        browser.tabs.query({}, (tabs) => {
+            tabs.forEach(tab => {
+                browser.tabs.sendMessage(tab.id, message).catch(err => {
+                    console.log("[Trolblock] Error sending to tab", tab.id, err);
+                });
+            });
         });
         return true;
     } else if (message.action === "reloadPopup") {
