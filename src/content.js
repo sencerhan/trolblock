@@ -163,7 +163,7 @@ function removeWithAnimation(element) {
   loadStoredData();
   if (!settings.showAnimations) {
     console.log('[Trolblock] Animations disabled, removing element immediately');
-    element.remove();
+    element.style.display = 'none';
     showNotification(1);
     return;
   }
@@ -216,19 +216,19 @@ function removeWithAnimation(element) {
 
     // Ensure element has position for absolute positioning to work
     const originalPosition = element.style.position;
-    element.style.position = "relative";
+    //element.style.position = "relative";
 
     console.log('[Trolblock] Adding animation overlay to element');
     element.appendChild(overlay);
 
     setTimeout(() => {
       console.log('[Trolblock] Animation completed, removing element');
-      element.remove();
+      element.style.display = 'none';
       showNotification(1);
     }, 1500);
   } catch (error) {
     console.error('[Trolblock] Error in animation:', error);
-    element.remove();
+    element.style.display = 'none';
     showNotification(1);
   }
 }
