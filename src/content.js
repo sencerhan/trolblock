@@ -1,22 +1,22 @@
 // Polyfill: browser API'si yoksa chrome API'sini kullan
 if (typeof browser === "undefined") {
-    var browser = {
-        ...chrome,
-        runtime: {
-            ...chrome.runtime,
-            sendMessage: (message) => {
-                return new Promise((resolve, reject) => {
-                    chrome.runtime.sendMessage(message, (response) => {
-                        if (chrome.runtime.lastError) {
-                            reject(chrome.runtime.lastError);
-                        } else {
-                            resolve(response);
-                        }
-                    });
-                });
+  var browser = {
+    ...chrome,
+    runtime: {
+      ...chrome.runtime,
+      sendMessage: (message) => {
+        return new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage(message, (response) => {
+            if (chrome.runtime.lastError) {
+              reject(chrome.runtime.lastError);
+            } else {
+              resolve(response);
             }
-        }
-    };
+          });
+        });
+      },
+    },
+  };
 }
 
 let blockedAuthors = [];
@@ -26,55 +26,53 @@ let removedTotalCount = 0;
 let notificationTimeout = null;
 
 let settings = {
-    showNotifications: true,
-    showAnimations: true
+  showNotifications: true,
+  showAnimations: true,
 };
 
 // Ayarları yükle
 function loadSettings() {
-    return new Promise((resolve) => {
-        browser.storage.local.get(['showNotifications', 'showAnimations'], (result) => {
-            if (browser.runtime.lastError) {
-                console.error('Storage error:', browser.runtime.lastError);
-                resolve();
-                return;
-            }
-            settings.showNotifications = result.showNotifications !== false;
-            settings.showAnimations = result.showAnimations !== false;
-            resolve();
-        });
-    });
+  browser.storage.local.get(
+    ["showNotifications", "showAnimations"],
+    (result) => {
+      if (browser.runtime.lastError) {
+        console.error("Storage error:", browser.runtime.lastError);
+        return;
+      }
+      settings.showNotifications = result.showNotifications !== false;
+      settings.showAnimations = result.showAnimations !== false;
+    }
+  );
 }
 
-async function showNotification(count) {
-   await loadSettings();
-    if (!settings.showNotifications) return;
+function showNotification(count) {
+  if (!settings.showNotifications) return;
 
-    if (notificationTimeout) {
-        clearTimeout(notificationTimeout);
-        notificationTimeout = null;
-    }
+  if (notificationTimeout) {
+    clearTimeout(notificationTimeout);
+    notificationTimeout = null;
+  }
 
-    if (activeNotification) {
-        activeNotification.remove();
-        activeNotification = null;
-    }
+  if (activeNotification) {
+    activeNotification.remove();
+    activeNotification = null;
+  }
 
-    const notification = document.createElement("div");
-    notification.className = "trolblock-notification";
+  const notification = document.createElement("div");
+  notification.className = "trolblock-notification";
 
-    const img = document.createElement("img");
-    img.src = browser.runtime.getURL("icons/icon128.png");
-    img.style.cssText = "width:48px;height:48px;margin-right:16px;";
+  const img = document.createElement("img");
+  img.src = browser.runtime.getURL("icons/icon128.png");
+  img.style.cssText = "width:48px;height:48px;margin-right:16px;";
 
-    const text = document.createElement("span");
-    text.style.cssText = "font-size:16px;";
-    text.textContent = `${count} zırva temizlendi`;
+  const text = document.createElement("span");
+  text.style.cssText = "font-size:16px;";
+  text.textContent = `${count} zırva temizlendi`;
 
-    notification.appendChild(img);
-    notification.appendChild(text);
+  notification.appendChild(img);
+  notification.appendChild(text);
 
-    notification.style.cssText = `
+  notification.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
@@ -92,24 +90,24 @@ async function showNotification(count) {
         min-height: 50px;
     `;
 
-    document.body.appendChild(notification);
-    activeNotification = notification;
+  document.body.appendChild(notification);
+  activeNotification = notification;
 
-    setTimeout(() => {
-        notification.remove();
-        activeNotification = null;
-    }, 4000); // 4 saniye sonra kaybolacak
+  setTimeout(() => {
+    notification.remove();
+    activeNotification = null;
+  }, 4000); // 4 saniye sonra kaybolacak
 }
 
-async function removeWithAnimation(element) {
-    await loadSettings();
-        if (!settings.showAnimations) {
-        element.remove();
-        return;
-    }
+function removeWithAnimation(element) {
+  if (!settings.showAnimations) {
+    element.remove();
+    showNotification(1);
+    return;
+  }
 
-    const overlay = document.createElement("div");
-    overlay.style.cssText = `
+  const overlay = document.createElement("div");
+  overlay.style.cssText = `
         position: absolute;
         top: 0;
         left: 0;
@@ -122,157 +120,168 @@ async function removeWithAnimation(element) {
         z-index: 1000;
     `;
 
-    const gif = document.createElement("img");
-    gif.src = browser.runtime.getURL("gif/boom.gif");
-    gif.style.cssText = `
+  const gif = document.createElement("img");
+  gif.src = browser.runtime.getURL("gif/boom.gif");
+  gif.style.cssText = `
         width: 100%;
         height: auto;
         object-fit: contain;
     `;
-    overlay.appendChild(gif);
+  overlay.appendChild(gif);
 
-    element.style.position = "relative";
-    element.appendChild(overlay);
+  element.style.position = "relative";
+  element.appendChild(overlay);
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+  setTimeout(() => {
     element.remove();
     showNotification(1);
+  }, 1500);
 }
 
 function removeBlockedComments() {
-    const commentElements = document.querySelectorAll("li[data-author]");
-    commentElements.forEach((element) => {
-        if (blockedAuthors.includes(element.getAttribute("data-author"))) {
-            const rect = element.getBoundingClientRect();
-            const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
-            if (isVisible) {
-                removeWithAnimation(element);
-                removedTotalCount++;
-            }
-        }
-    });
+  loadSettings();
+  const commentElements = document.querySelectorAll("li[data-author]");
+  commentElements.forEach((element) => {
+    if (blockedAuthors.includes(element.getAttribute("data-author"))) {
+      const rect = element.getBoundingClientRect();
+      const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+      if (isVisible) {
+        removeWithAnimation(element);
+        removedTotalCount++;
+      }
+    }
+  });
 }
 
 //add event listener scroll
-window.addEventListener('scroll', removeBlockedComments);
+window.addEventListener("scroll", removeBlockedComments);
 function addBlockButtons() {
-    document.querySelectorAll(".favorite-links").forEach((favLink) => {
-        // Sadece li içerisindeki favorite-links için işlem yap
-        const parentLi = favLink.closest("li[data-author]");
-        if (!parentLi) return;
+  document.querySelectorAll(".favorite-links").forEach((favLink) => {
+    // Sadece li içerisindeki favorite-links için işlem yap
+    const parentLi = favLink.closest("li[data-author]");
+    if (!parentLi) return;
 
-        // Eğer buton zaten eklenmişse tekrar ekleme
-        if (favLink.nextElementSibling?.classList.contains("trolblock-button"))
-            return;
+    // Eğer buton zaten eklenmişse tekrar ekleme
+    if (favLink.nextElementSibling?.classList.contains("trolblock-button"))
+      return;
 
-        const blockButton = document.createElement("a");
-        blockButton.className = "trolblock-button";
-        blockButton.style.cssText =
-            "cursor:pointer;margin-left:5px;display:inline-flex;align-items:center; margin-top: 1px;";
+    const blockButton = document.createElement("a");
+    blockButton.className = "trolblock-button";
+    blockButton.style.cssText =
+      "cursor:pointer;margin-left:5px;display:inline-flex;align-items:center; margin-top: 1px;";
 
-        const img = document.createElement("img");
-        img.src = browser.runtime.getURL("icons/icon16.png");
-        img.style.cssText = "width:16px;height:16px;margin-right:3px;";
+    const img = document.createElement("img");
+    img.src = browser.runtime.getURL("icons/icon16.png");
+    img.style.cssText = "width:16px;height:16px;margin-right:3px;";
 
-        const span = document.createElement("span");
-        span.style.cssText = "color:#666;font-size:12px;";
-        span.title = "Zırrrva";
-        span.textContent = "Derdini S...";
+    const span = document.createElement("span");
+    span.style.cssText = "color:#666;font-size:12px;";
+    span.title = "Zırrrva";
+    span.textContent = "Derdini S...";
 
-        blockButton.appendChild(img);
-        blockButton.appendChild(span);
+    blockButton.appendChild(img);
+    blockButton.appendChild(span);
 
-        blockButton.addEventListener("click", (e) => {
-            e.preventDefault();
-            const author = parentLi.getAttribute("data-author");
-            if (author) {
-                browser.runtime.sendMessage(
-                    { action: "getBlockedAuthors" }
-                ).then((response) => {
-                    const currentList = response.blockedAuthors || [];
-                    if (!currentList.includes(author)) {
-                        const newList = [...currentList, author];
-                        browser.runtime.sendMessage(
-                            {
-                                action: "updateBlockedAuthors",
-                                blockedAuthors: newList,
-                            }
-                        ).then(() => {
-                            blockedAuthors = newList;
-                            removeBlockedComments(); // Engellenen yorumları hemen kaldır
-                        }).catch((error) => {
-                            console.error("Error updating blocked authors:", error);
-                        });
-                    }
-                }).catch((error) => {
-                    console.error("Error fetching blocked authors:", error);
+    blockButton.addEventListener("click", (e) => {
+      e.preventDefault();
+      const author = parentLi.getAttribute("data-author");
+      if (author) {
+        browser.runtime
+          .sendMessage({ action: "getBlockedAuthors" })
+          .then((response) => {
+            const currentList = response.blockedAuthors || [];
+            if (!currentList.includes(author)) {
+              const newList = [...currentList, author];
+              browser.runtime
+                .sendMessage({
+                  action: "updateBlockedAuthors",
+                  blockedAuthors: newList,
+                })
+                .then(() => {
+                  blockedAuthors = newList;
+                  removeBlockedComments(); // Engellenen yorumları hemen kaldır
+                })
+                .catch((error) => {
+                  console.error("Error updating blocked authors:", error);
                 });
             }
-        });
-
-        favLink.insertAdjacentElement("afterend", blockButton);
+          })
+          .catch((error) => {
+            console.error("Error fetching blocked authors:", error);
+          });
+      }
     });
+
+    favLink.insertAdjacentElement("afterend", blockButton);
+  });
 }
 
 // Sayfa yüklendiğinde ve DOM değişikliklerinde butonları ekle
 const observeContent = new MutationObserver(() => {
-    clearTimeout(throttleTimer);
-    throttleTimer = setTimeout(() => {
-        addBlockButtons();
-        removeBlockedComments();
-    }, 250);
+  clearTimeout(throttleTimer);
+  throttleTimer = setTimeout(() => {
+    addBlockButtons();
+    removeBlockedComments();
+  }, 250);
 });
 
 // İlk yükleme
-loadSettings().then(() => {
-    browser.runtime.sendMessage({ action: "getBlockedAuthors" }).then((response) => {
-        if (response?.blockedAuthors) {
-            blockedAuthors = response.blockedAuthors;
-            addBlockButtons();
-            removeBlockedComments();
+loadSettings();
+browser.runtime
+  .sendMessage({ action: "getBlockedAuthors" })
+  .then((response) => {
+    if (response?.blockedAuthors) {
+      blockedAuthors = response.blockedAuthors;
+      addBlockButtons();
+      removeBlockedComments();
 
-            observeContent.observe(document.body, {
-                childList: true,
-                subtree: true,
-            });
-        }
-    }).catch((error) => {
-        console.error("Error fetching blocked authors:", error);
-    });
-});
+      observeContent.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
+  })
+  .catch((error) => {
+    console.error("Error fetching blocked authors:", error);
+  });
 
 // Engellenen yazarları yükle ve hemen başlat
-browser.runtime.sendMessage({ action: "getBlockedAuthors" }).then((response) => {
+browser.runtime
+  .sendMessage({ action: "getBlockedAuthors" })
+  .then((response) => {
     if (response?.blockedAuthors) {
-        blockedAuthors = response.blockedAuthors;
-        removeBlockedComments();
+      blockedAuthors = response.blockedAuthors;
+      removeBlockedComments();
 
-        // Sadece gerekli container'ı izle
-        new MutationObserver(() => {
-            clearTimeout(throttleTimer);
-            throttleTimer = setTimeout(removeBlockedComments, 250);
-        }).observe(document.body, { childList: true, subtree: true });
+      // Sadece gerekli container'ı izle
+      new MutationObserver(() => {
+        clearTimeout(throttleTimer);
+        throttleTimer = setTimeout(removeBlockedComments, 250);
+      }).observe(document.body, { childList: true, subtree: true });
     }
-}).catch((error) => {
+  })
+  .catch((error) => {
     console.error("Error fetching blocked authors:", error);
-});
+  });
 
 // Mesaj dinleyicileri
 browser.runtime.onMessage.addListener((message) => {
-    if (message.action === "updateBlockedAuthors") {
-        blockedAuthors = message.blockedAuthors || [];
-        removeBlockedComments();
-    }
-    if (message.action === "refreshBlockList") {
-        browser.runtime.sendMessage({ action: "getBlockedAuthors" }).then((response) => {
-            if (response?.blockedAuthors) {
-                blockedAuthors = response.blockedAuthors;
-                removeBlockedComments();
-            }
-        });
-    }
-    if (message.action === "updateSettings") {
-        Object.assign(settings, message.settings);
-    }
-    return true;
+  if (message.action === "updateBlockedAuthors") {
+    blockedAuthors = message.blockedAuthors || [];
+    removeBlockedComments();
+  }
+  if (message.action === "refreshBlockList") {
+    browser.runtime
+      .sendMessage({ action: "getBlockedAuthors" })
+      .then((response) => {
+        if (response?.blockedAuthors) {
+          blockedAuthors = response.blockedAuthors;
+          removeBlockedComments();
+        }
+      });
+  }
+  if (message.action === "updateSettings") {
+    Object.assign(settings, message.settings);
+  }
+  return true;
 });
