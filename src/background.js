@@ -21,9 +21,10 @@ browser.runtime.onInstalled.addListener(() => {
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "getBlockedAuthors") {
         storage.get(['blockedAuthors'], (result) => {
+            console.log("Engelli yazarlar gönderiliyor:", result.blockedAuthors); // Debug için log ekle
             sendResponse({ blockedAuthors: result.blockedAuthors || [] });
         });
-        return true;
+        return true; // Ensure the listener returns true to indicate async response
     } else if (message.action === "updateBlockedAuthors") {
         const blockedAuthors = message.blockedAuthors || [];
         storage.set({ blockedAuthors }, () => {

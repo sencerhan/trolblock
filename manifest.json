@@ -33,7 +33,8 @@
   },
   "web_accessible_resources": [
     "icons/*",
-    "gif/*"
+    "gif/*",
+    "src/options/options.js"
   ],
   "options_ui": {
     "page": "src/options/options.html",

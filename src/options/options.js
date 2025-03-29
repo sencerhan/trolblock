@@ -1,6 +1,25 @@
 // Polyfill: browser API'si yoksa chrome API'sini kullan
 if (typeof browser === "undefined") {
-    var browser = chrome;
+    var browser = {
+        ...chrome,
+        runtime: {
+            ...chrome.runtime,
+            sendMessage: (message) => {
+                return new Promise((resolve, reject) => {
+                    chrome.runtime.sendMessage(message, (response) => {
+                        if (chrome.runtime.lastError) {
+                            reject(chrome.runtime.lastError);
+                        } else {
+                            resolve(response);
+                        }
+                    });
+                });
+            },
+        },
+        storage: {
+            local: chrome.storage.local
+        }
+    };
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -12,18 +31,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Ayarları yükle
     function loadSettings() {
-        browser.storage.local.get(['showNotifications', 'showAnimations', 'blockedAuthors'], (result) => {
+        if (typeof browser.runtime.sendMessage !== "function") {
+            console.error("browser.runtime.sendMessage is not defined.");
+            return;
+        }
+
+        // Engellenen yazarları getBlockedAuthors mesajıyla al
+        browser.runtime.sendMessage({ action: "getBlockedAuthors" })
+            .then((response) => {
+                if (response?.blockedAuthors) {
+                    console.log("Engelli yazarlar alındı:", response.blockedAuthors); // Debug için log ekle
+                    textarea.value = response.blockedAuthors.join('\n'); // Güncel listeyi textarea'ya yaz
+                    console.log("Engelli yazarlar textarea'ya yazıldı:", response.blockedAuthors);
+                } else {
+                    console.log("Engelli yazarlar listesi boş.");
+                }
+            })
+            .catch((error) => {
+                console.error("Engelli yazarlar alınırken hata oluştu:", error);
+            });
+
+        // Diğer ayarları yükle
+        browser.storage.local.get(['showNotifications', 'showAnimations'], (result) => {
             if (browser.runtime.lastError) {
                 console.error('Storage error:', browser.runtime.lastError);
                 return;
             }
             showNotificationsCheckbox.checked = result.showNotifications !== false;
             showAnimationsCheckbox.checked = result.showAnimations !== false;
-            textarea.value = (result.blockedAuthors || []).join('\n');
         });
     }
 
-    loadSettings();
+    loadSettings(); // Sayfa yüklendiğinde ayarları yükle
 
     // Ayarları kaydet
     function saveSettings() {
@@ -106,5 +145,18 @@ document.addEventListener('DOMContentLoaded', function() {
             // Dosya seçimi tamamlandıktan sonra input'u sıfırla
             e.target.value = '';
         }
+    });
+
+    // Dışarıdan gelen güncelleme mesajlarını dinle
+    browser.runtime.onMessage.addListener((message) => {
+        if (message.action === "refreshOptionsPage" && message.blockedAuthors) {
+            // Textarea'yı güncelle
+            textarea.value = message.blockedAuthors.join('\n');
+            
+            // İsteğe bağlı: Kullanıcıya bildirim göster
+            statusElement.textContent = "Liste güncellendi!";
+            setTimeout(() => statusElement.textContent = "", 2000);
+        }
+        return true;
     });
 });

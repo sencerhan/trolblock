@@ -200,6 +200,12 @@ function addBlockButtons() {
                 .then(() => {
                   blockedAuthors = newList;
                   removeBlockedComments(); // Engellenen yorumları hemen kaldır
+                  
+                  // Options sayfasına güncelleme mesajı gönder
+                  browser.runtime.sendMessage({
+                    action: "refreshOptionsPage",
+                    blockedAuthors: newList
+                  });
                 })
                 .catch((error) => {
                   console.error("Error updating blocked authors:", error);
