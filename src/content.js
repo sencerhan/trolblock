@@ -23,7 +23,7 @@ function loadSettings() {
 }
 
 function showNotification(count) {
-    if (!settings.showNotifications) return; // Bildirimler devre dışıysa çık
+    if (!settings.showNotifications) return;
 
     if (notificationTimeout) {
         clearTimeout(notificationTimeout);
@@ -37,12 +37,18 @@ function showNotification(count) {
 
     const notification = document.createElement("div");
     notification.className = "trolblock-notification";
-    notification.innerHTML = `
-        <img src="${browser.runtime.getURL(
-          "icons/icon128.png"
-        )}" style="width:48px;height:48px;margin-right:16px;">
-        <span style="font-size:16px;">${count} zırva temizlendi</span>
-    `;
+
+    const img = document.createElement("img");
+    img.src = browser.runtime.getURL("icons/icon128.png");
+    img.style.cssText = "width:48px;height:48px;margin-right:16px;";
+
+    const text = document.createElement("span");
+    text.style.cssText = "font-size:16px;";
+    text.textContent = `${count} zırva temizlendi`;
+
+    notification.appendChild(img);
+    notification.appendChild(text);
+
     notification.style.cssText = `
         position: fixed;
         top: 20px;
@@ -143,12 +149,18 @@ function addBlockButtons() {
         blockButton.className = "trolblock-button";
         blockButton.style.cssText =
             "cursor:pointer;margin-left:5px;display:inline-flex;align-items:center; margin-top: 1px;";
-        blockButton.innerHTML = `
-                    <img src="${browser.runtime.getURL(
-            "icons/icon16.png"
-        )}" style="width:16px;height:16px;margin-right:3px;">
-                    <span style="color:#666;font-size:12px;" title="Zırrrva">Derdini S...</span>
-            `;
+
+        const img = document.createElement("img");
+        img.src = browser.runtime.getURL("icons/icon16.png");
+        img.style.cssText = "width:16px;height:16px;margin-right:3px;";
+
+        const span = document.createElement("span");
+        span.style.cssText = "color:#666;font-size:12px;";
+        span.title = "Zırrrva";
+        span.textContent = "Derdini S...";
+
+        blockButton.appendChild(img);
+        blockButton.appendChild(span);
 
         blockButton.addEventListener("click", (e) => {
             e.preventDefault();

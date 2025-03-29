@@ -2,11 +2,11 @@
   "manifest_version": 2,
   "name": "trolblock",
   "version": "1.0",
-  "description": "Trol entry blocker",
+  "description": "Trol entry blocker. Engellenen kullanıcıların içeriklerini gizler ve kullanıcıların engellenen listelerini yönetmelerine olanak tanır.",
   "browser_specific_settings": {
     "gecko": {
-      "id": "trolblock@sencerhan.com",
-      "strict_min_version": "57.0"
+      "id": "sencerhan76@gmail.com",
+      "strict_min_version": "58.0"
     }
   },
   "permissions": [
