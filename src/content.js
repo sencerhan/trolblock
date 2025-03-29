@@ -25,7 +25,7 @@ function showNotification(count) {
     const notification = document.createElement("div");
     notification.className = "trolblock-notification";
     notification.innerHTML = `
-        <img src="${chrome.runtime.getURL(
+        <img src="${browser.runtime.getURL(
           "icons/icon128.png"
         )}" style="width:48px;height:48px;margin-right:16px;">
         <span style="font-size:16px;">${count} zırva temizlendi</span>
@@ -81,7 +81,7 @@ async function removeWithAnimation(element) {
 
     // Gif ekle
     const gif = document.createElement("img");
-    gif.src = chrome.runtime.getURL("gif/boom.gif");
+    gif.src = browser.runtime.getURL("gif/boom.gif");
     gif.style.cssText = `
         width: 100%;
         height: auto;
@@ -132,7 +132,7 @@ function addBlockButtons() {
         blockButton.style.cssText =
             "cursor:pointer;margin-left:5px;display:inline-flex;align-items:center; margin-top: 1px;";
         blockButton.innerHTML = `
-                    <img src="${chrome.runtime.getURL(
+                    <img src="${browser.runtime.getURL(
             "icons/icon16.png"
         )}" style="width:16px;height:16px;margin-right:3px;">
                     <span style="color:#666;font-size:12px;" title="Zırrrva">Derdini S...</span>
@@ -144,26 +144,24 @@ function addBlockButtons() {
             if (entry) {
                 const author = entry.getAttribute("data-author");
                 if (author) {
-                    chrome.runtime.sendMessage(
-                        { action: "getBlockedAuthors" },
-                        (response) => {
-                            const currentList = response.blockedAuthors || [];
-                            if (!currentList.includes(author)) {
-                                const newList = [...currentList, author];
-                                chrome.runtime.sendMessage(
-                                    {
-                                        action: "updateBlockedAuthors",
-                                        blockedAuthors: newList,
-                                    },
-                                    () => {
-                                        blockedAuthors = newList;
-                                        //trigger new mutation observer
-                                        document.body.appendChild(document.createElement("div"));
-                                    }
-                                );
-                            }
+                    browser.runtime.sendMessage(
+                        { action: "getBlockedAuthors" }
+                    ).then((response) => {
+                        const currentList = response.blockedAuthors || [];
+                        if (!currentList.includes(author)) {
+                            const newList = [...currentList, author];
+                            browser.runtime.sendMessage(
+                                {
+                                    action: "updateBlockedAuthors",
+                                    blockedAuthors: newList,
+                                }
+                            ).then(() => {
+                                blockedAuthors = newList;
+                                //trigger new mutation observer
+                                document.body.appendChild(document.createElement("div"));
+                            });
                         }
-                    );
+                    });
                 }
             }
         });
@@ -182,8 +180,8 @@ const observeContent = new MutationObserver(() => {
 });
 
 // İlk yükleme
-chrome.runtime.sendMessage({ action: "getBlockedAuthors" }, response => {
-    chrome.storage.sync.get(['showNotifications', 'showAnimations'], (result) => {
+browser.runtime.sendMessage({ action: "getBlockedAuthors" }).then(response => {
+    browser.storage.sync.get(['showNotifications', 'showAnimations']).then((result) => {
         settings.showNotifications = result.showNotifications !== false;
         settings.showAnimations = result.showAnimations !== false;
 
@@ -201,7 +199,7 @@ chrome.runtime.sendMessage({ action: "getBlockedAuthors" }, response => {
 });
 
 // Engellenen yazarları yükle ve hemen başlat
-chrome.runtime.sendMessage({ action: "getBlockedAuthors" }, (response) => {
+browser.runtime.sendMessage({ action: "getBlockedAuthors" }).then((response) => {
     if (response?.blockedAuthors) {
         blockedAuthors = response.blockedAuthors;
         removeBlockedComments();
@@ -215,13 +213,13 @@ chrome.runtime.sendMessage({ action: "getBlockedAuthors" }, (response) => {
 });
 
 // Mesaj dinleyicileri
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "updateBlockedAuthors") {
         blockedAuthors = message.blockedAuthors || [];
         removeBlockedComments();
     }
     if (message.action === "refreshBlockList") {
-        chrome.runtime.sendMessage({ action: "getBlockedAuthors" }, (response) => {
+        browser.runtime.sendMessage({ action: "getBlockedAuthors" }).then((response) => {
             if (response?.blockedAuthors) {
                 blockedAuthors = response.blockedAuthors;
                 removeBlockedComments();

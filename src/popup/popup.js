@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const statusElement = document.getElementById('status');
   
   // Kaydedilmiş engellenen yazarları yükle
-  chrome.runtime.sendMessage({ action: "getBlockedAuthors" }, (response) => {
+  browser.runtime.sendMessage({ action: "getBlockedAuthors" }).then((response) => {
     if (response && response.blockedAuthors) {
       textarea.value = response.blockedAuthors.join(', ');
     }
@@ -15,13 +15,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const text = textarea.value.trim();
     let blockedAuthors = text ? text.split(',').map(author => author.trim()).filter(author => author !== '') : [];
     
-    chrome.runtime.sendMessage({ action: "updateBlockedAuthors", blockedAuthors }, response => {
+    browser.runtime.sendMessage({ action: "updateBlockedAuthors", blockedAuthors }).then(response => {
         if (response.success) {
             statusElement.textContent = "Başarıyla kaydedildi!";
             
-            chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+            browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
                 if (tabs[0]) {
-                    chrome.tabs.sendMessage(tabs[0].id, { 
+                    browser.tabs.sendMessage(tabs[0].id, { 
                         action: "updateBlockedAuthors",
                         blockedAuthors
                     });
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Yedekleme butonu
   document.getElementById('exportButton').addEventListener('click', function() {
-      chrome.runtime.sendMessage({ action: "getBlockedAuthors" }, (response) => {
+      browser.runtime.sendMessage({ action: "getBlockedAuthors" }).then((response) => {
           if (response && response.blockedAuthors) {
               const blob = new Blob([JSON.stringify({ blockedAuthors: response.blockedAuthors })], { type: 'application/json' });
               const url = URL.createObjectURL(blob);
@@ -62,16 +62,15 @@ document.addEventListener('DOMContentLoaded', function() {
               try {
                   const data = JSON.parse(e.target.result);
                   if (data.blockedAuthors && Array.isArray(data.blockedAuthors)) {
-                      chrome.runtime.sendMessage(
-                          { action: "updateBlockedAuthors", blockedAuthors: data.blockedAuthors },
-                          response => {
-                              if (response.success) {
-                                  textarea.value = data.blockedAuthors.join(', ');
-                                  statusElement.textContent = "Liste başarıyla yüklendi!";
-                                  setTimeout(() => statusElement.textContent = "", 2000);
-                              }
+                      browser.runtime.sendMessage(
+                          { action: "updateBlockedAuthors", blockedAuthors: data.blockedAuthors }
+                      ).then(response => {
+                          if (response.success) {
+                              textarea.value = data.blockedAuthors.join(', ');
+                              statusElement.textContent = "Liste başarıyla yüklendi!";
+                              setTimeout(() => statusElement.textContent = "", 2000);
                           }
-                      );
+                      });
                   }
               } catch (error) {
                   statusElement.textContent = "Geçersiz yedek dosyası!";
@@ -83,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Ayarları yükle
-  chrome.storage.sync.get(['showNotifications', 'showAnimations'], (result) => {
+  browser.storage.sync.get(['showNotifications', 'showAnimations']).then((result) => {
       document.getElementById('showNotifications').checked = result.showNotifications !== false;
       document.getElementById('showAnimations').checked = result.showAnimations !== false;
   });
@@ -91,11 +90,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // Ayarları kaydet
   ['showNotifications', 'showAnimations'].forEach(id => {
       document.getElementById(id).addEventListener('change', function(e) {
-          chrome.storage.sync.set({ [id]: e.target.checked }, () => {
+          browser.storage.sync.set({ [id]: e.target.checked }).then(() => {
               // Aktif sekmeye ayarları bildir
-              chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+              browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
                   if (tabs[0]) {
-                      chrome.tabs.sendMessage(tabs[0].id, { 
+                      browser.tabs.sendMessage(tabs[0].id, { 
                           action: "updateSettings",
                           settings: { [id]: e.target.checked }
                       });

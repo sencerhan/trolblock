@@ -3,18 +3,24 @@
   "name": "trolblock",
   "version": "1.0",
   "description": "Trol entry blocker",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "trolblock@example.com",
+      "strict_min_version": "109.0"
+    }
+  },
   "permissions": [
     "activeTab",
     "storage",
     "unlimitedStorage"
   ],
   "background": {
-    "service_worker": "src/background.js"
+    "scripts": ["browser-polyfill.js", "src/background.js"]
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["src/content.js"]
+      "js": ["browser-polyfill.js", "src/content.js"]
     }
   ],
   "action": {

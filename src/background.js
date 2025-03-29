@@ -1,31 +1,29 @@
 // Uzantı yüklendiğinde varsayılan değerleri başlat
-chrome.runtime.onInstalled.addListener(() => {
-    chrome.storage.sync.get(['blockedAuthors', 'showNotifications', 'showAnimations'], (result) => {
+browser.runtime.onInstalled.addListener(() => {
+    browser.storage.sync.get(['blockedAuthors', 'showNotifications', 'showAnimations']).then((result) => {
         const defaults = {
             blockedAuthors: result.blockedAuthors || [],
             showNotifications: result.showNotifications !== false,
             showAnimations: result.showAnimations !== false
         };
-        chrome.storage.sync.set(defaults);
+        browser.storage.sync.set(defaults);
     });
 });
 
 // Popup veya content scriptlerden gelen mesajları dinle
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "getBlockedAuthors") {
-        chrome.storage.sync.get(['blockedAuthors'], (result) => {
+        browser.storage.sync.get(['blockedAuthors']).then((result) => {
             sendResponse({ blockedAuthors: result.blockedAuthors || [] });
         });
         return true;
     } else if (message.action === "updateBlockedAuthors") {
         const blockedAuthors = message.blockedAuthors || [];
-        chrome.storage.sync.set({ blockedAuthors }, () => {
-            if (chrome.runtime.lastError) {
-                console.error('Storage error:', chrome.runtime.lastError);
-                sendResponse({ success: false, error: chrome.runtime.lastError });
-            } else {
-                sendResponse({ success: true });
-            }
+        browser.storage.sync.set({ blockedAuthors }).then(() => {
+            sendResponse({ success: true });
+        }).catch((error) => {
+            console.error('Storage error:', error);
+            sendResponse({ success: false, error: error });
         });
         return true;
     }
