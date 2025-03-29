@@ -1,6 +1,22 @@
 // Polyfill: browser API'si yoksa chrome API'sini kullan
 if (typeof browser === "undefined") {
-    var browser = chrome;
+    var browser = {
+        ...chrome,
+        runtime: {
+            ...chrome.runtime,
+            sendMessage: (message) => {
+                return new Promise((resolve, reject) => {
+                    chrome.runtime.sendMessage(message, (response) => {
+                        if (chrome.runtime.lastError) {
+                            reject(chrome.runtime.lastError);
+                        } else {
+                            resolve(response);
+                        }
+                    });
+                });
+            }
+        }
+    };
 }
 
 let blockedAuthors = [];
@@ -16,9 +32,17 @@ let settings = {
 
 // Ayarları yükle
 function loadSettings() {
-    return browser.storage.local.get(['showNotifications', 'showAnimations']).then((result) => {
-        settings.showNotifications = result.showNotifications !== false;
-        settings.showAnimations = result.showAnimations !== false;
+    return new Promise((resolve) => {
+        browser.storage.local.get(['showNotifications', 'showAnimations'], (result) => {
+            if (browser.runtime.lastError) {
+                console.error('Storage error:', browser.runtime.lastError);
+                resolve();
+                return;
+            }
+            settings.showNotifications = result.showNotifications !== false;
+            settings.showAnimations = result.showAnimations !== false;
+            resolve();
+        });
     });
 }
 
@@ -78,12 +102,10 @@ function showNotification(count) {
 
 async function removeWithAnimation(element) {
     if (!settings.showAnimations) {
-        // Animasyon devre dışıysa, doğrudan sil
         element.remove();
         return;
     }
 
-    // Overlay oluştur
     const overlay = document.createElement("div");
     overlay.style.cssText = `
         position: absolute;
@@ -98,7 +120,6 @@ async function removeWithAnimation(element) {
         z-index: 1000;
     `;
 
-    // Gif ekle
     const gif = document.createElement("img");
     gif.src = browser.runtime.getURL("gif/boom.gif");
     gif.style.cssText = `
@@ -108,11 +129,9 @@ async function removeWithAnimation(element) {
     `;
     overlay.appendChild(gif);
 
-    // Element'i relative yap ve overlay'i ekle
     element.style.position = "relative";
     element.appendChild(overlay);
 
-    // 2 saniye bekle ve element'i sil
     await new Promise((resolve) => setTimeout(resolve, 1500));
     element.remove();
     showNotification(1);
@@ -120,26 +139,25 @@ async function removeWithAnimation(element) {
 
 function removeBlockedComments() {
     const commentElements = document.querySelectorAll("li[data-author]");
-    let removedCount = 0;
-
-    for (const element of commentElements) {
+    commentElements.forEach((element) => {
         if (blockedAuthors.includes(element.getAttribute("data-author"))) {
             const rect = element.getBoundingClientRect();
             const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
             if (isVisible) {
                 removeWithAnimation(element);
                 removedTotalCount++;
-                removedCount++;
             }
         }
-    }
+    });
 }
+
 //add event listener scroll
 window.addEventListener('scroll', removeBlockedComments);
 function addBlockButtons() {
     document.querySelectorAll(".favorite-links").forEach((favLink) => {
         // Sadece li içerisindeki favorite-links için işlem yap
-        if (!favLink.closest("li")) return;
+        const parentLi = favLink.closest("li[data-author]");
+        if (!parentLi) return;
 
         // Eğer buton zaten eklenmişse tekrar ekleme
         if (favLink.nextElementSibling?.classList.contains("trolblock-button"))
@@ -164,31 +182,29 @@ function addBlockButtons() {
 
         blockButton.addEventListener("click", (e) => {
             e.preventDefault();
-            const entry = favLink.closest("li[data-author]");
-            if (entry) {
-                const author = entry.getAttribute("data-author");
-                if (author) {
-                    browser.runtime.sendMessage(
-                        { action: "getBlockedAuthors" },
-                        (response) => {
-                            const currentList = response.blockedAuthors || [];
-                            if (!currentList.includes(author)) {
-                                const newList = [...currentList, author];
-                                browser.runtime.sendMessage(
-                                    {
-                                        action: "updateBlockedAuthors",
-                                        blockedAuthors: newList,
-                                    },
-                                    () => {
-                                        blockedAuthors = newList;
-                                        //trigger new mutation observer
-                                        document.body.appendChild(document.createElement("div"));
-                                    }
-                                );
+            const author = parentLi.getAttribute("data-author");
+            if (author) {
+                browser.runtime.sendMessage(
+                    { action: "getBlockedAuthors" }
+                ).then((response) => {
+                    const currentList = response.blockedAuthors || [];
+                    if (!currentList.includes(author)) {
+                        const newList = [...currentList, author];
+                        browser.runtime.sendMessage(
+                            {
+                                action: "updateBlockedAuthors",
+                                blockedAuthors: newList,
                             }
-                        }
-                    );
-                }
+                        ).then(() => {
+                            blockedAuthors = newList;
+                            removeBlockedComments(); // Engellenen yorumları hemen kaldır
+                        }).catch((error) => {
+                            console.error("Error updating blocked authors:", error);
+                        });
+                    }
+                }).catch((error) => {
+                    console.error("Error fetching blocked authors:", error);
+                });
             }
         });
 
@@ -218,6 +234,8 @@ loadSettings().then(() => {
                 subtree: true,
             });
         }
+    }).catch((error) => {
+        console.error("Error fetching blocked authors:", error);
     });
 });
 
@@ -233,6 +251,8 @@ browser.runtime.sendMessage({ action: "getBlockedAuthors" }).then((response) => 
             throttleTimer = setTimeout(removeBlockedComments, 250);
         }).observe(document.body, { childList: true, subtree: true });
     }
+}).catch((error) => {
+    console.error("Error fetching blocked authors:", error);
 });
 
 // Mesaj dinleyicileri
