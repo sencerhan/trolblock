@@ -46,7 +46,8 @@ function loadSettings() {
     });
 }
 
-function showNotification(count) {
+async function showNotification(count) {
+   await loadSettings();
     if (!settings.showNotifications) return;
 
     if (notificationTimeout) {
@@ -101,7 +102,8 @@ function showNotification(count) {
 }
 
 async function removeWithAnimation(element) {
-    if (!settings.showAnimations) {
+    await loadSettings();
+        if (!settings.showAnimations) {
         element.remove();
         return;
     }
