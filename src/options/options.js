@@ -132,22 +132,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Yedekleme butonu
     document.getElementById('exportButton').addEventListener('click', function() {
-        browser.storage.local.get('blockedAuthors', (result) => {
+        // Önce mevcut değişiklikleri kaydet, sonra yedekle
+        const currentBlockedAuthors = textarea.value.split('\n').map(line => line.trim()).filter(line => line);
+        
+        // Önce storage'ı güncelle
+        browser.storage.local.set({ blockedAuthors: currentBlockedAuthors }, () => {
             if (browser.runtime.lastError) {
                 console.error('Storage error:', browser.runtime.lastError);
+                statusElement.textContent = "Yedekleme başarısız: Storage hatası";
+                setTimeout(() => statusElement.textContent = "", 2000);
                 return;
             }
-            if (result.blockedAuthors) {
-                const blob = new Blob([result.blockedAuthors.join('\n')], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'trolblock-backup.txt';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }
+            
+            // Sonra yedekle
+            const blob = new Blob([currentBlockedAuthors.join('\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'trolblock-backup.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // Bildirim göster
+            statusElement.textContent = "Güncel liste yedeklendi!";
+            setTimeout(() => statusElement.textContent = "", 2000);
+            
+            // Diğer sekmelere güncellemeyi bildir
+            browser.runtime.sendMessage({
+                action: "updateBlockedAuthors",
+                blockedAuthors: currentBlockedAuthors
+            }).catch(error => {
+                console.error("Error updating other tabs:", error);
+            });
         });
     });
 
