@@ -212,7 +212,12 @@ function addBlockButtons() {
       }
     });
 
-    favLink.insertAdjacentElement("afterend", blockButton);
+    const shareElement = parentLi.querySelector('a.entry-share');
+    if (shareElement) {
+      shareElement.parentNode.insertBefore(blockButton, shareElement);
+    } else {
+      favLink.insertAdjacentElement("afterend", blockButton);
+    }
   });
 }
 
