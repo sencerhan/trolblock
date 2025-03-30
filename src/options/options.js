@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'trolblock-backup.txt';
+            a.download = 'trollblock-backup.txt';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

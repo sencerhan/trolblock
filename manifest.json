@@ -1,23 +1,23 @@
 {
-  "manifest_version": 2,
-  "name": "trolblock",
+  "manifest_version": 3,
+  "name": "trollblock",
   "version": "1.0",
-  "description": "Trol entry blocker. Engellenen kullanıcıların içeriklerini gizler ve kullanıcıların engellenen listelerini yönetmelerine olanak tanır.",
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "sencerhan76@gmail.com",
-      "strict_min_version": "58.0"
-    }
-  },
+  "description": "Toplu troll engelleyici Troll blocker for X and Ekşi",
   "permissions": [
     "activeTab",
     "storage",
     "tabs",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
     "*://*.twitter.com/*",
-    "*://*.x.com/*"
+    "*://*.x.com/*",
+    "*://*.eksisozluk.com/*"
   ],
   "background": {
-    "scripts": ["src/background.js"]
+    "service_worker": "src/background/chrome-worker.js",
+    "scripts": ["src/background/firefox-worker.js"],
+    "type": "module"
   },
   "content_scripts": [
     {
@@ -29,21 +29,26 @@
       "js": ["src/content.js"]
     }
   ],
-  "browser_action": {
-    "default_title": "Trolblock Ayarları"
+  "action": {
+    "default_title": "Trollblock Ayarları"
   },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "web_accessible_resources": [
-    "icons/*",
-    "gif/*",
-    "gif/boom.gif",
-    "src/options/options.js"
-  ],
-  "content_security_policy": "script-src 'self'; object-src 'self'",
+  "web_accessible_resources": [{
+    "resources": [
+      "icons/*",
+      "gif/*",
+      "gif/boom.gif",
+      "src/options/options.js"
+    ],
+    "matches": ["<all_urls>"]
+  }],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
   "options_ui": {
     "page": "src/options/options.html",
     "open_in_tab": true

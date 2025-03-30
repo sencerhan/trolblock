@@ -35,7 +35,7 @@ let settings = {
 
 // Ana başlatma fonksiyonu
 function initializeExtension() {
-  console.log('[Trolblock] Initializing extension');
+  console.log('[Trollblock] Initializing extension');
 
   // Ayarları ve engellenen yazarları yükle
   loadStoredData()
@@ -50,7 +50,7 @@ function initializeExtension() {
       window.addEventListener('beforeunload', cleanup);
     })
     .catch(error => {
-      console.error('[Trolblock] Initialization error:', error);
+      console.error('[Trollblock] Initialization error:', error);
     });
 }
 
@@ -69,10 +69,10 @@ async function loadStoredData() {
     const response = await browser.runtime.sendMessage({ action: "getBlockedAuthors" });
     blockedAuthors = response?.blockedAuthors || [];
 
-    console.log('[Trolblock] Settings and blocked authors loaded:', blockedAuthors.length);
+    console.log('[Trollblock] Settings and blocked authors loaded:', blockedAuthors.length);
     return true;
   } catch (error) {
-    console.error('[Trolblock] Error loading stored data:', error);
+    console.error('[Trollblock] Error loading stored data:', error);
     return false;
   }
 }
@@ -80,10 +80,10 @@ async function loadStoredData() {
 // Sayfa tipine göre özellikler
 function setupPageSpecificFeatures() {
   if (isTwitter()) {
-    console.log('[Trolblock] Setting up Twitter features');
+    console.log('[Trollblock] Setting up Twitter features');
     setupTwitterFeatures();
   } else {
-    console.log('[Trolblock] Setting up Eksisozluk features');
+    console.log('[Trollblock] Setting up Eksisozluk features');
     setupEksiFeatures();
   }
 
@@ -118,7 +118,7 @@ function showNotification(count) {
   }
 
   const notification = document.createElement("div");
-  notification.className = "trolblock-notification";
+  notification.className = "trollblock-notification";
 
   const img = document.createElement("img");
   img.src = browser.runtime.getURL("icons/icon128.png");
@@ -159,10 +159,10 @@ function showNotification(count) {
 }
 
 function removeWithAnimation(element) {
-  console.log('[Trolblock] removeWithAnimation called, showAnimations setting:', settings.showAnimations);
+  console.log('[Trollblock] removeWithAnimation called, showAnimations setting:', settings.showAnimations);
   loadStoredData();
   if (!settings.showAnimations) {
-    console.log('[Trolblock] Animations disabled, removing element immediately');
+    console.log('[Trollblock] Animations disabled, removing element immediately');
     element.style.display = 'none';
     showNotification(1);
     return;
@@ -170,10 +170,10 @@ function removeWithAnimation(element) {
 
   try {
     const gifUrl = browser.runtime.getURL("gif/boom.gif");
-    console.log('[Trolblock] Animation GIF URL:', gifUrl);
+    console.log('[Trollblock] Animation GIF URL:', gifUrl);
 
     const overlay = document.createElement("div");
-    overlay.className = "trolblock-animation-overlay";
+    overlay.className = "trollblock-animation-overlay";
     overlay.style.cssText = `
       position: absolute;
       top: 0;
@@ -197,9 +197,9 @@ function removeWithAnimation(element) {
       max-width: 300px;
     `;
 
-    gif.onload = () => console.log('[Trolblock] GIF loaded successfully');
+    gif.onload = () => console.log('[Trollblock] GIF loaded successfully');
     gif.onerror = (e) => {
-      console.error('[Trolblock] GIF failed to load:', e);
+      console.error('[Trollblock] GIF failed to load:', e);
       // GIF yüklenemezse yazı göster
       const fallbackText = document.createElement("div");
       fallbackText.textContent = "💥 BOOM! 💥";
@@ -218,23 +218,23 @@ function removeWithAnimation(element) {
     const originalPosition = element.style.position;
     //element.style.position = "relative";
 
-    console.log('[Trolblock] Adding animation overlay to element');
+    console.log('[Trollblock] Adding animation overlay to element');
     element.appendChild(overlay);
 
     setTimeout(() => {
-      console.log('[Trolblock] Animation completed, removing element');
+      console.log('[Trollblock] Animation completed, removing element');
       element.style.display = 'none';
       showNotification(1);
     }, 1500);
   } catch (error) {
-    console.error('[Trolblock] Error in animation:', error);
+    console.error('[Trollblock] Error in animation:', error);
     element.style.display = 'none';
     showNotification(1);
   }
 }
 
 function removeTwitterWithAnimation(article, username) {
-  console.log(`[Trolblock] Removing Twitter content from user: ${username}`);
+  console.log(`[Trollblock] Removing Twitter content from user: ${username}`);
   loadStoredData();
   if (!settings.showAnimations) {
     article.style.display = 'none';
@@ -245,7 +245,7 @@ function removeTwitterWithAnimation(article, username) {
   try {
     const gifUrl = browser.runtime.getURL("gif/boom.gif");
     const overlay = document.createElement("div");
-    overlay.className = "trolblock-twitter-animation";
+    overlay.className = "trollblock-twitter-animation";
     overlay.style.cssText = `
       position: absolute;
       top: 0;
@@ -288,7 +288,7 @@ function removeTwitterWithAnimation(article, username) {
     //article.style.position = "relative";
 
     // Check if overlay already exists before appending
-    const existingOverlay = article.querySelector('.trolblock-twitter-animation');
+    const existingOverlay = article.querySelector('.trollblock-twitter-animation');
     if (!existingOverlay) {
       article.appendChild(overlay);
     }
@@ -299,7 +299,7 @@ function removeTwitterWithAnimation(article, username) {
       showNotification(1);
     }, 1600);
   } catch (error) {
-    console.error('[Trolblock] Error in Twitter animation:', error);
+    console.error('[Trollblock] Error in Twitter animation:', error);
     article.style.display = 'none';
 
     showNotification(1);
@@ -339,15 +339,15 @@ function addBlockButtons() {
     const parentLi = favLink.closest("li[data-author]");
     if (!parentLi) return;
 
-    if (favLink.nextElementSibling?.classList.contains("trolblock-button") ||
-      parentLi.getAttribute('data-trolblock-processed') === 'true') {
+    if (favLink.nextElementSibling?.classList.contains("trollblock-button") ||
+      parentLi.getAttribute('data-trollblock-processed') === 'true') {
       return;
     }
 
-    parentLi.setAttribute('data-trolblock-processed', 'true');
+    parentLi.setAttribute('data-trollblock-processed', 'true');
 
     const blockButton = document.createElement("a");
-    blockButton.className = "trolblock-button";
+    blockButton.className = "trollblock-button";
     blockButton.style.cssText =
       "cursor:pointer;margin-left:5px;display:inline-flex;align-items:center; margin-top: 1px;";
 
@@ -417,8 +417,8 @@ function removeBlockedComments() {
     if (blockedAuthors.includes(element.getAttribute("data-author"))) {
       const rect = element.getBoundingClientRect();
       const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
-      if (isVisible && !element.getAttribute('data-trolblock-removing')) {
-        element.setAttribute('data-trolblock-removing', 'true');
+      if (isVisible && !element.getAttribute('data-trollblock-removing')) {
+        element.setAttribute('data-trollblock-removing', 'true');
         removeWithAnimation(element);
         removedCount++;
       }
@@ -471,21 +471,21 @@ function addTwitterBlockButtons() {
   const articles = findTwitterArticles();
 
   articles.forEach((article) => {
-    if (article.querySelector('.trolblock-twitter-button') ||
-      article.getAttribute('data-trolblock-processed') === 'true') {
+    if (article.querySelector('.trollblock-twitter-button') ||
+      article.getAttribute('data-trollblock-processed') === 'true') {
       return;
     }
 
     const username = findTwitterUsername(article);
     if (!username) {
-      article.setAttribute('data-trolblock-processed', 'true');
+      article.setAttribute('data-trollblock-processed', 'true');
       return;
     }
 
-    article.setAttribute('data-trolblock-processed', 'true');
+    article.setAttribute('data-trollblock-processed', 'true');
 
     const blockButton = document.createElement("div");
-    blockButton.className = "trolblock-twitter-button";
+    blockButton.className = "trollblock-twitter-button";
     blockButton.style.cssText = `
       position: absolute;
       top: 58px;
@@ -509,12 +509,12 @@ function addTwitterBlockButtons() {
 
     blockButton.addEventListener("click", (e) => {
       e.stopPropagation();
-      console.log('[Trolblock] Block button clicked');
+      console.log('[Trollblock] Block button clicked');
 
       let username = findTwitterUsername(article);
 
       if (username) {
-        console.log('[Trolblock] Found username:', username);
+        console.log('[Trollblock] Found username:', username);
 
         browser.runtime.sendMessage({ action: "getBlockedAuthors" })
           .then((response) => {
@@ -546,14 +546,14 @@ function addTwitterBlockButtons() {
             console.error("Error fetching blocked authors:", error);
           });
       } else {
-        console.log('[Trolblock] No username found in this tweet!');
-        console.log('[Trolblock] Tweet container HTML:', article.outerHTML);
+        console.log('[Trollblock] No username found in this tweet!');
+        console.log('[Trollblock] Tweet container HTML:', article.outerHTML);
       }
     });
 
     article.style.position = "relative";
     article.appendChild(blockButton);
-    console.log(`[Trolblock] Button added to tweet container`);
+    console.log(`[Trollblock] Button added to tweet container`);
   });
 }
 
@@ -569,14 +569,14 @@ function findTwitterArticles() {
 
   for (const selector of selectors) {
     const found = document.querySelectorAll(selector);
-    console.log(`[Trolblock] Selector "${selector}" found ${found.length} elements`);
+    console.log(`[Trollblock] Selector "${selector}" found ${found.length} elements`);
     if (found.length > 0) {
       articles = articles.concat(Array.from(found));
     }
   }
 
   articles = [...new Set(articles)];
-  console.log(`[Trolblock] Total unique tweet containers found: ${articles.length}`);
+  console.log(`[Trollblock] Total unique tweet containers found: ${articles.length}`);
 
   return articles;
 }
@@ -598,7 +598,7 @@ function findTwitterUsername(container) {
 
       if (text.includes('@')) {
         username = text.replace('@', '');
-        console.log(`[Trolblock] Found username: @${username}`);
+        console.log(`[Trollblock] Found username: @${username}`);
         return username;
       }
     }
@@ -608,7 +608,7 @@ function findTwitterUsername(container) {
     const matches = container.textContent.match(/@(\w+)/);
     if (matches && matches[1]) {
       username = matches[1];
-      console.log(`[Trolblock] Found username via text content: @${username}`);
+      console.log(`[Trollblock] Found username via text content: @${username}`);
       return username;
     }
   }
@@ -619,9 +619,9 @@ function findTwitterUsername(container) {
 function removeTwitterBlocked() {
   if (!isTwitter()) return;
 
-  console.log('[Trolblock] Checking for blocked Twitter content...');
+  console.log('[Trollblock] Checking for blocked Twitter content...');
   const articles = findTwitterArticles();
-  console.log('[Trolblock] Scanning for blocked users in', articles.length, 'containers');
+  console.log('[Trollblock] Scanning for blocked users in', articles.length, 'containers');
 
   let blockedCount = 0;
 
@@ -639,7 +639,7 @@ function removeTwitterBlocked() {
     }
   });
 
-  console.log('[Trolblock] Total blocked tweet containers:', blockedCount);
+  console.log('[Trollblock] Total blocked tweet containers:', blockedCount);
 }
 
 // ===== ORTAK FONKSİYONLAR =====
@@ -711,6 +711,6 @@ window.addEventListener('scroll', () => {
   }
 });
 window.addEventListener('load', () => {
-  console.log('[Trolblock] Window load event fired');
+  console.log('[Trollblock] Window load event fired');
   setTimeout(removeBlockedContent, 500);
 });
