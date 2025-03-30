@@ -506,16 +506,14 @@ function addTwitterBlockButtons() {
       transition: opacity 0.2s ease-in-out;
     `;
 
-    // Add hover styles to parent article
-    article.style.position = "relative";
-    
-    // Add event listeners for hover
-
-
     const img = document.createElement("img");
     img.src = browser.runtime.getURL("icons/icon48.png");
     img.title = "Zırrrva!";
-    img.style.cssText = "width:24px;height:24px;";
+    img.style.cssText = `
+      width: 24px;
+      height: 24px;
+      transition: transform 0.3s ease-in-out;
+    `;
     blockButton.appendChild(img);
 
     blockButton.addEventListener("click", (e) => {
@@ -563,11 +561,22 @@ function addTwitterBlockButtons() {
     });
     article.addEventListener('mouseenter', () => {
       blockButton.style.opacity = '1';
-  });
-  
-  article.addEventListener('mouseleave', () => {
+    });
+    
+    article.addEventListener('mouseleave', () => {
       blockButton.style.opacity = '0';
-  }); 
+      img.style.transform = 'scale(1)'; // Reset scale when leaving article
+    });
+
+    // Add hover effect to button itself
+    blockButton.addEventListener('mouseenter', () => {
+      img.style.transform = 'scale(3)';
+    });
+    
+    blockButton.addEventListener('mouseleave', () => {
+      img.style.transform = 'scale(1)';
+    });
+
     article.style.position = "relative";
     article.appendChild(blockButton);
     console.log(`[Trollblock] Button added to tweet container`);
