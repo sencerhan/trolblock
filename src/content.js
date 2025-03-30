@@ -464,7 +464,9 @@ function setupTwitterFeatures() {
   });
 }
 
-// Twitter için blok butonları ekle
+// Twitter için blok butonları ekle  
+// 
+
 function addTwitterBlockButtons() {
   if (!isTwitter()) return;
 
@@ -500,10 +502,19 @@ function addTwitterBlockButtons() {
       align-items: center;
       justify-content: center;
       box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
     `;
+
+    // Add hover styles to parent article
+    article.style.position = "relative";
+    
+    // Add event listeners for hover
+
 
     const img = document.createElement("img");
     img.src = browser.runtime.getURL("icons/icon48.png");
+    img.title = "Zırrrva!";
     img.style.cssText = "width:24px;height:24px;";
     blockButton.appendChild(img);
 
@@ -550,13 +561,22 @@ function addTwitterBlockButtons() {
         console.log('[Trollblock] Tweet container HTML:', article.outerHTML);
       }
     });
-
+    article.addEventListener('mouseenter', () => {
+      blockButton.style.opacity = '1';
+  });
+  
+  article.addEventListener('mouseleave', () => {
+      blockButton.style.opacity = '0';
+  }); 
     article.style.position = "relative";
     article.appendChild(blockButton);
     console.log(`[Trollblock] Button added to tweet container`);
   });
 }
-
+const articles = document.querySelectorAll('article');
+setInterval(() => {
+  addTwitterBlockButtons();
+}, 5000);
 function findTwitterArticles() {
   const selectors = [
     'article',
@@ -710,7 +730,6 @@ window.addEventListener('scroll', () => {
     removeBlockedComments();
   }
 });
-window.addEventListener('load', () => {
-  console.log('[Trollblock] Window load event fired');
-  setTimeout(removeBlockedContent, 500);
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(removeBlockedContent, 500); 
 });
