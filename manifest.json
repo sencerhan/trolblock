@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "trollblock",
+  "name": "TrollBlock - Content Filter",
+  "version": "1.0.3",
+  "description": "A content filtering tool for Twitter/X and Ekşi Sözlük. Filter and block unwanted content safely.",
   "browser_specific_settings": {
     "gecko": {
       "id": "sencerhan76@gmail.com",
       "strict_min_version": "109.0"
     }
   },
-  "version": "1.0.2",
-  "description": "Toplu troll engelleyici Troll blocker for X and Ekşi",
   "permissions": [
     "activeTab",
     "storage",

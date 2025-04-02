@@ -1,12 +1,12 @@
 # Trollblock Uzantısı
 
-Bu Chrome uzantısı, belirli kullanıcılardan gelen istenmeyen zırvaları engellemenize yardımcı olur. Şimdilik ekşide işe yaramaktadır.
+Bu Chrome uzantısı, belirli kullanıcılardan gelen istenmeyen tweetleri ve ekşideki entryleri engellemenize yardımcı olur. toplu liste yükleyebilir ya da yedek olarak kaydedip troll listenizi başka kullanıcılarla paylaşabilirsinii. Şimdilik ekşide ve x'te işe yaramaktadır.
 
 ## Özellikler
 
-- Kullanıcı adlarını girerek belirli kullanıcılardan gelen zırvaları engelleme
-- Engellenen kullanıcılardan gelen zırvaları otomatik olarak gizleme
-- Zırvalar gizlendiğinde bildirim gösterme
+- Kullanıcı adlarını girerek belirli kullanıcılardan gelen gönderileri engelleme
+- Engellenen kullanıcılardan gelen gönderileri otomatik olarak gizleme
+- Gönderiler gizlendiğinde bildirim gösterme
 
 
 ## Kurulum ve Test
@@ -25,7 +25,7 @@ Bu Chrome uzantısı, belirli kullanıcılardan gelen istenmeyen zırvaları eng
 3. Trollblock uzantı simgesine tıklayarak popup'ı açın
 4. Engellemek istediğiniz kullanıcı adlarını virgülle ayırarak yazın
 5. "Kaydet" butonuna tıklayın
-6. Sayfayı yenileyin - artık engellediğiniz kullanıcıların zırvaları gizlenecektir
+6. Sayfayı yenileyin - artık engellediğiniz kullanıcıların gönderileri gizlenecektir
 
 ### Hata Ayıklama
 1. Uzantı çalışmazsa, Chrome'da `chrome://extensions` sayfasına gidin
@@ -35,7 +35,7 @@ Bu Chrome uzantısı, belirli kullanıcılardan gelen istenmeyen zırvaları eng
 
 ## Nasıl Çalışır?
 
-Uzantı, oluşturacağınız liste ile eşleşen zırvaları yok edecektir.
+Uzantı, oluşturacağınız liste ile eşleşen gönderileri yok edecektir.
 
 ## Katkıda Bulunma
 

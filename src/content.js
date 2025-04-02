@@ -587,26 +587,37 @@ setInterval(() => {
   addTwitterBlockButtons();
 }, 5000);
 function findTwitterArticles() {
-  const selectors = [
-    'article',
-    'div[data-testid="tweet"]',
-    'div[data-testid="tweetDetail"]',
-    'div[data-testid="cellInnerDiv"]'
-  ];
-
+  const mainArticles = document.querySelectorAll('article');
+  const tweetContainers = document.querySelectorAll('div[data-testid="tweet"], div[data-testid="tweetDetail"], div[data-testid="cellInnerDiv"]');
+  
   let articles = [];
 
-  for (const selector of selectors) {
-    const found = document.querySelectorAll(selector);
-    console.log(`[Trollblock] Selector "${selector}" found ${found.length} elements`);
-    if (found.length > 0) {
-      articles = articles.concat(Array.from(found));
+  // Add main article elements
+  mainArticles.forEach(article => {
+    if (!article.closest('article') || article.closest('article') === article) {
+      // Only add if this is the topmost article
+      articles.push(article);
     }
-  }
+  });
 
-  articles = [...new Set(articles)];
-  console.log(`[Trollblock] Total unique tweet containers found: ${articles.length}`);
+  // Add tweet containers that are inside articles
+  tweetContainers.forEach(container => {
+    const parentArticle = container.closest('article');
+    if (parentArticle && !articles.includes(parentArticle)) {
+      articles.push(parentArticle);
+    }
+  });
 
+  articles = [...new Set(articles)].filter(article => {
+    // Additional validation to ensure element is a valid tweet container
+    return article && 
+           article.textContent && 
+           article.textContent.includes('@') &&
+           !article.closest('[aria-label="Timeline: Trending now"]') && // Exclude trending section
+           !article.closest('[aria-label="Who to follow"]'); // Exclude suggestions
+  });
+
+  console.log(`[Trollblock] Found ${articles.length} valid tweet containers`);
   return articles;
 }
 
@@ -658,15 +669,27 @@ function removeTwitterBlocked() {
     const username = findTwitterUsername(article);
 
     if (username && blockedAuthors.includes(username)) {
-      const isVisible = article.top >= 0 && article.bottom <= window.innerHeight;
-      if (isVisible) {
-        removeWithAnimation(article);
-        removedCount++;
+      // Check if element is partially visible in viewport
+      const rect = article.getBoundingClientRect();
+      const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+      const isPartiallyVisible = 
+        // Element's top edge is in view OR bottom edge is in view
+        (rect.top >= 0 && rect.top <= windowHeight) ||
+        (rect.bottom >= 0 && rect.bottom <= windowHeight) ||
+        // OR element spans the entire viewport
+        (rect.top <= 0 && rect.bottom >= windowHeight);
+
+      if (isPartiallyVisible && !article.getAttribute('data-trollblock-removing')) {
+        article.setAttribute('data-trollblock-removing', 'true');
+        removeTwitterWithAnimation(article, username);
+        blockedCount++;
       }
-      removeTwitterWithAnimation(article, username);
-      blockedCount++;
     }
   });
+
+  if (blockedCount > 0) {
+    showNotification(blockedCount);
+  }
 
   console.log('[Trollblock] Total blocked tweet containers:', blockedCount);
 }
@@ -731,14 +754,21 @@ if (document.readyState === 'loading') {
 }
 
 // Sayfa yüklendiğinde ek kontrol
+let scrollTimeout = null;
 window.addEventListener('scroll', () => {
-  if (isTwitter()) {
-    addTwitterBlockButtons();
-    removeTwitterBlocked();
-  } else {
-    removeBlockedComments();
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout);
   }
+  scrollTimeout = setTimeout(() => {
+    if (isTwitter()) {
+      addTwitterBlockButtons();
+      removeTwitterBlocked();
+    } else {
+      removeBlockedComments();
+    }
+  }, 250); // Throttle scroll events
 });
+
 window.addEventListener('DOMContentLoaded', () => {
   setTimeout(removeBlockedContent, 500); 
 });
