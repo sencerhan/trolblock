@@ -21,6 +21,7 @@ if (typeof browser === "undefined") {
 
 // Temel değişkenler
 let blockedAuthors = [];
+let blockedKeywords = [];
 let throttleTimer;
 let activeNotification = null;
 let notificationTimeout = null;
@@ -68,6 +69,12 @@ async function loadStoredData() {
     // Engellenen yazarları yükle
     const response = await browser.runtime.sendMessage({ action: "getBlockedAuthors" });
     blockedAuthors = response?.blockedAuthors || [];
+
+    // Engellenen anahtar kelimeleri yükle
+    const keywordsResult = await new Promise(resolve => {
+      browser.storage.local.get(['blockedKeywords'], resolve);
+    });
+    blockedKeywords = (keywordsResult.blockedKeywords || []).map(keyword => keyword.toLowerCase().trim());
 
     console.log('[Trollblock] Settings and blocked authors loaded:', blockedAuthors.length);
     return true;
@@ -414,7 +421,12 @@ function removeBlockedComments() {
   let removedCount = 0;
 
   commentElements.forEach((element) => {
-    if (blockedAuthors.includes(element.getAttribute("data-author"))) {
+    const author = element.getAttribute("data-author");
+    const textContent = element.textContent.toLowerCase();
+
+    const containsBlockedKeyword = blockedKeywords.some(keyword => textContent.includes(keyword));
+
+    if (blockedAuthors.includes(author) || containsBlockedKeyword) {
       const rect = element.getBoundingClientRect();
       const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
       if (isVisible && !element.getAttribute('data-trollblock-removing')) {
@@ -667,9 +679,11 @@ function removeTwitterBlocked() {
 
   articles.forEach((article) => {
     const username = findTwitterUsername(article);
+    const textContent = article.textContent.toLowerCase();
 
-    if (username && blockedAuthors.includes(username)) {
-      // Check if element is partially visible in viewport
+    const containsBlockedKeyword = blockedKeywords.some(keyword => textContent.includes(keyword));
+
+    if ((username && blockedAuthors.includes(username)) || containsBlockedKeyword) {
       const rect = article.getBoundingClientRect();
       const windowHeight = window.innerHeight || document.documentElement.clientHeight;
       const isPartiallyVisible = 
@@ -681,7 +695,7 @@ function removeTwitterBlocked() {
 
       if (isPartiallyVisible && !article.getAttribute('data-trollblock-removing')) {
         article.setAttribute('data-trollblock-removing', 'true');
-        removeTwitterWithAnimation(article, username);
+        removeTwitterWithAnimation(article, username || 'keyword match');
         blockedCount++;
       }
     }
@@ -720,6 +734,11 @@ function setupMessageListener() {
 
       case "refreshBlockList":
         loadStoredData().then(removeBlockedContent);
+        break;
+
+      case "updateBlockedKeywords":
+        blockedKeywords = message.blockedKeywords || [];
+        removeBlockedContent();
         break;
     }
     return true;
@@ -768,7 +787,14 @@ window.addEventListener('scroll', () => {
     }
   }, 250); // Throttle scroll events
 });
-
+setInterval(() => {
+  if (isTwitter()) {
+    addTwitterBlockButtons();
+    removeTwitterBlocked();
+  } else {
+    removeBlockedComments();
+  }
+}, 3000);
 window.addEventListener('DOMContentLoaded', () => {
   setTimeout(removeBlockedContent, 500); 
 });

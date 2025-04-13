@@ -1,11 +1,30 @@
-#popup-container {
-    padding: 20px;
-    font-family: Arial, sans-serif;
-}
 
 textarea {
     width: 100%;
     resize: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    box-sizing: border-box;
+    height: 150px; /* Ensure both textareas have the same height */
+}
+
+textarea::placeholder {
+    color: #aaa;
+    font-style: italic;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* Add detailed placeholder descriptions */
+#blockedAuthors::placeholder {
+    content: "Kullanıcı adları (örneğin: user1, user2)";
+}
+
+#blockedKeywords::placeholder {
+    content: "Virgül ile ayrılmalıdır. örn: reisim,grok bu,hey grok";
 }
 
 button {
@@ -16,6 +35,9 @@ button {
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    font-size: 14px;
+    width: 300px; /* Set fixed width */
+    align-self: center; /* Center the button */
 }
 
 button:hover {
@@ -24,9 +46,39 @@ button:hover {
 
 label {
     font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
 }
 
 #status {
     margin-top: 10px;
     font-size: 14px;
+}
+
+#options-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.settings {
+    flex: 1 1 calc(50% - 20px);
+    box-sizing: border-box;
+}
+
+textarea  {
+    width: 100%;
+}
+
+h2 {
+    font-size: 16px;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #4CAF50;
+    text-align: center;
 }

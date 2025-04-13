@@ -7,28 +7,38 @@
     <link rel="stylesheet" href="../../styles.css">
 </head>
 <body>
-    <div id="options-container">
+    <div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;">
+            <img src="/icons/icon128.png" alt="Trollblock Icon" style="width: 50px; height: 50px;">
+
         <h1>Trollblock Ayarları</h1>
-        <div class="settings" style="margin: 10px 0; text-align: left;">
-            <label style="display: block; margin: 5px 0;">
+        <div class="settings">
+            <label>
                 <input type="checkbox" id="showNotifications">
                 Bildirimleri göster
             </label>
-            <label style="display: block; margin: 5px 0;">
+            <label>
                 <input type="checkbox" id="showAnimations">
                 Animasyonlu silme efektini göster
             </label>
         </div>
-        <h2>Engellenen Yazarlar</h2>
-        <textarea id="blockedAuthors" rows="8" cols="50" placeholder="Engellenen yazarları satır satır girin..."></textarea>
-        <button id="saveButton">Kaydet</button>
-        <div class="backup-controls" style="margin-top: 10px;">
+        </div>
+        <div class="settings">
+            <h2>X,Ekşi Engellenen Kullanıcılar</h2>
+            <textarea id="blockedAuthors" placeholder="Kullanıcı adları (örneğin: user1, user2)"></textarea>
+        </div>
+        <div class="settings">
+            <h2>X,Ekşi İçerik Filtresi Kara Liste</h2>
+            <textarea id="blockedKeywords" placeholder="Alt alta yazınız"></textarea>
+        </div>
+        <div class="backup-controls" style="display: flex; gap:5px; justify-content: center; width: 100%; margin-top: 20px;">
+            <button id="saveButton">Kaydet</button>
             <button id="exportButton">Listeyi Yedekle</button>
             <button id="importButton">Liste Yükle</button>
             <input type="file" id="importInput" style="display: none;" accept=".txt">
         </div>
-        <p id="status" style="color: green;"></p>
+        <p id="status"></p>
     </div>
-    <script src="options.js" defer></script> <!-- Ensure this path is correct -->
+    <script src="options.js" defer></script>
 </body>
 </html>

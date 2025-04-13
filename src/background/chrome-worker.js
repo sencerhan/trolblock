@@ -27,6 +27,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             handleUpdateBlockedAuthors(message, sendResponse);
             return true;
 
+        case "updateBlockedKeywords":
+            storage.set({ blockedKeywords: message.blockedKeywords || [] }, () => {
+                if (chrome.runtime.lastError) {
+                    sendResponse({ success: false, error: chrome.runtime.lastError });
+                    return;
+                }
+                broadcastToTabs({ action: "updateBlockedKeywords", blockedKeywords: message.blockedKeywords });
+                sendResponse({ success: true });
+            });
+            return true;
+
         case "refreshOptionsPage":
             handleRefreshOptionsPage(message);
             return true;

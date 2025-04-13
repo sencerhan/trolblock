@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TrollBlock - Content Filter",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "A content filtering tool for Twitter/X and Ekşi Sözlük. Filter and block unwanted content safely.",
   "browser_specific_settings": {
     "gecko": {

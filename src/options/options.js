@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const showNotificationsCheckbox = document.getElementById('showNotifications');
     const showAnimationsCheckbox = document.getElementById('showAnimations');
     const textarea = document.getElementById('blockedAuthors');
+    const keywordsTextarea = document.getElementById('blockedKeywords');
     const saveButton = document.getElementById('saveButton');
 
     // Ayarları yükle
@@ -52,13 +53,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
         // Diğer ayarları yükle
-        browser.storage.local.get(['showNotifications', 'showAnimations'], (result) => {
+        browser.storage.local.get(['showNotifications', 'showAnimations', 'blockedKeywords'], (result) => {
             if (browser.runtime.lastError) {
                 console.error('Storage error:', browser.runtime.lastError);
                 return;
             }
             showNotificationsCheckbox.checked = result.showNotifications !== false;
             showAnimationsCheckbox.checked = result.showAnimations !== false;
+            keywordsTextarea.value = (result.blockedKeywords || []).join('\n'); // Display as a line-separated list
         });
     }
 
@@ -67,11 +69,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Ayarları kaydet
     function saveSettings() {
         const blockedAuthors = textarea.value.split('\n').map(line => line.trim()).filter(line => line);
+        const blockedKeywords = keywordsTextarea.value
+            .split(/[\n,]+/) // Split by newlines or commas
+            .map(keyword => keyword.trim())
+            .filter(keyword => keyword);
         
         const settings = {
             showNotifications: showNotificationsCheckbox.checked,
             showAnimations: showAnimationsCheckbox.checked,
-            blockedAuthors: blockedAuthors
+            blockedAuthors: blockedAuthors,
+            blockedKeywords: blockedKeywords
         };
         
         // Ayarları storage'a kaydet
@@ -113,10 +120,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         }).catch(err => {
                             console.log("Error sending blocked authors to tab", tab.id, err);
                         });
+
+                        // Engellenen anahtar kelimeleri güncelle
+                        browser.tabs.sendMessage(tab.id, {
+                            action: "updateBlockedKeywords",
+                            blockedKeywords: blockedKeywords
+                        }).catch(err => {
+                            console.log("Error sending blocked keywords to tab", tab.id, err);
+                        });
                     });
                 });
             }).catch(error => {
                 console.error("Error updating blocked authors:", error);
+            });
+
+            browser.runtime.sendMessage({
+                action: "updateBlockedKeywords",
+                blockedKeywords: blockedKeywords
+            }).catch(error => {
+                console.error("Error updating blocked keywords:", error);
             });
             
             // 2 saniye sonra durum mesajını temizle
@@ -134,9 +156,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('exportButton').addEventListener('click', function() {
         // Önce mevcut değişiklikleri kaydet, sonra yedekle
         const currentBlockedAuthors = textarea.value.split('\n').map(line => line.trim()).filter(line => line);
+        const currentBlockedKeywords = keywordsTextarea.value
+            .split(/[\n,]+/) // Split by newlines or commas
+            .map(keyword => keyword.trim())
+            .filter(keyword => keyword);
         
         // Önce storage'ı güncelle
-        browser.storage.local.set({ blockedAuthors: currentBlockedAuthors }, () => {
+        browser.storage.local.set({ blockedAuthors: currentBlockedAuthors, blockedKeywords: currentBlockedKeywords }, () => {
             if (browser.runtime.lastError) {
                 console.error('Storage error:', browser.runtime.lastError);
                 statusElement.textContent = "Yedekleme başarısız: Storage hatası";
@@ -145,7 +171,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Sonra yedekle
-            const blob = new Blob([currentBlockedAuthors.join('\n')], { type: 'text/plain' });
+            const blob = new Blob([
+                "Blocked Authors:\n" + currentBlockedAuthors.join('\n') + "\n\n",
+                "Blocked Keywords:\n" + currentBlockedKeywords.join(', ')
+            ], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -163,6 +192,13 @@ document.addEventListener('DOMContentLoaded', function() {
             browser.runtime.sendMessage({
                 action: "updateBlockedAuthors",
                 blockedAuthors: currentBlockedAuthors
+            }).catch(error => {
+                console.error("Error updating other tabs:", error);
+            });
+
+            browser.runtime.sendMessage({
+                action: "updateBlockedKeywords",
+                blockedKeywords: currentBlockedKeywords
             }).catch(error => {
                 console.error("Error updating other tabs:", error);
             });

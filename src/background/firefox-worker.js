@@ -18,7 +18,7 @@ browser.runtime.onInstalled.addListener(() => {
 });
 
 // Message handling
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener(async (message) => {
     console.log('[Trollblock] Background received message:', message);
     
     switch(message.action) {
@@ -29,6 +29,11 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         case "updateBlockedAuthors":
             return handleUpdateBlockedAuthors(message);
+
+        case "updateBlockedKeywords":
+            await storage.set({ blockedKeywords: message.blockedKeywords || [] });
+            await broadcastToTabs({ action: "updateBlockedKeywords", blockedKeywords: message.blockedKeywords });
+            return Promise.resolve();
 
         case "refreshOptionsPage":
             handleRefreshOptionsPage(message);
