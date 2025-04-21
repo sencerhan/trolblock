@@ -346,8 +346,7 @@ function addBlockButtons() {
     const parentLi = favLink.closest("li[data-author]");
     if (!parentLi) return;
 
-    if (favLink.nextElementSibling?.classList.contains("trollblock-button") ||
-      parentLi.getAttribute('data-trollblock-processed') === 'true') {
+    if (parentLi.getAttribute('data-trollblock-processed') === 'true') {
       return;
     }
 
@@ -356,7 +355,7 @@ function addBlockButtons() {
     const blockButton = document.createElement("a");
     blockButton.className = "trollblock-button";
     blockButton.style.cssText =
-      "cursor:pointer;margin-left:5px;display:inline-flex;align-items:center; margin-top: 1px;";
+      "cursor:pointer;margin-right:5px;display:inline-flex;align-items:center;";
 
     const img = document.createElement("img");
     img.src = browser.runtime.getURL("icons/icon16.png");
@@ -406,11 +405,18 @@ function addBlockButtons() {
       }
     });
 
-    const shareElement = parentLi.querySelector('a.entry-share');
-    if (shareElement) {
-      shareElement.parentNode.insertBefore(blockButton, shareElement);
+    // .info div'inin başına butonu ekle
+    const infoDiv = parentLi.querySelector('.info');
+    if (infoDiv) {
+      infoDiv.insertAdjacentElement("afterbegin", blockButton);
     } else {
-      favLink.insertAdjacentElement("afterend", blockButton);
+      // Eğer .info div'i bulunamazsa eski yönteme dön
+      const shareElement = parentLi.querySelector('a.entry-share');
+      if (shareElement) {
+        shareElement.parentNode.insertBefore(blockButton, shareElement);
+      } else {
+        favLink.insertAdjacentElement("afterend", blockButton);
+      }
     }
   });
 }
